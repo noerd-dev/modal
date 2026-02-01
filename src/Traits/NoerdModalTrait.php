@@ -3,7 +3,6 @@
 namespace NoerdModal\Traits;
 
 use Illuminate\Support\Str;
-use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 
 trait NoerdModalTrait
@@ -20,6 +19,26 @@ trait NoerdModalTrait
     public array $relationTitles = [];
 
     public mixed $context = '';
+
+    protected function componentName(): string
+    {
+        return defined('static::COMPONENT') ? static::COMPONENT : $this->getName();
+    }
+
+    protected function noerdModalListeners(): array
+    {
+        return [
+            'close-modal-' . $this->componentName() => 'closeModalProcess',
+        ];
+    }
+
+    public function getListeners(): array
+    {
+        return array_merge(
+            $this->listeners,
+            $this->noerdModalListeners(),
+        );
+    }
 
     /**
      * Process mount for modal detail components.
@@ -65,17 +84,16 @@ trait NoerdModalTrait
     {
         $this->dispatch($this->getSelectEvent(), $modelId, $this->context);
 
-        $this->dispatch('close-modal-' . self::COMPONENT);
+        $this->dispatch('close-modal-' . $this->componentName());
     }
 
-    #[On('close-modal-' . self::COMPONENT)]
     public function closeModalProcess(?string $source = null, ?string $modalKey = null): void
     {
         if (defined('self::ID')) {
             $this->{self::ID} = '';
         }
         $this->currentTab = 1;
-        $this->dispatch('closeModal', componentName: self::COMPONENT, source: $source, modalKey: $modalKey);
+        $this->dispatch('closeModal', componentName: $this->componentName(), source: $source, modalKey: $modalKey);
 
         if ($source) {
             $this->dispatch('refreshList-' . $source);
@@ -108,7 +126,7 @@ trait NoerdModalTrait
      */
     protected function getSelectEvent(): string
     {
-        $entity = Str::singular(Str::before(self::COMPONENT, '-list'));
+        $entity = Str::singular(Str::before($this->componentName(), '-list'));
 
         return Str::camel($entity) . 'Selected';
     }
