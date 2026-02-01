@@ -17,8 +17,6 @@
     <div x-noerd::dialog:overlay
         @class([
             'fixed inset-0 bg-gray-800/50',
-           // 'lg:ml-[356px] hidden' => $iteration === 2,
-            //'lg:ml-[340px]' => $iteration === 3,
         ])>
     </div>
 
@@ -77,7 +75,7 @@
                 </div>
             </button>
 
-            <div x-data="{ isModal: true}">
+            <div x-data="{ isModal: true}" class="p-6 pt-12">
                 {{ $slot }}
             </div>
         </div>
