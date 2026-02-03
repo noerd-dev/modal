@@ -1,5 +1,5 @@
 {
-    "name": "noerd/noerd-modal",
+    "name": "noerd/modal",
     "description": "Open each livewire component in a modal window.",
     "type": "library",
     "version": "v0.1.2",
