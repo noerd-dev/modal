@@ -32,7 +32,7 @@ Add Modal
 Open a Livewire Component in a Modal from a button for example
 ```html
 <button type="button"
-@click="$modal('livewire-component-name', { optionalParameter: 'value1' })">
+    @click="$modal('livewire-component-name', { optionalParameter: 'value1' })">
     Open Modal
 </button>
 ```
