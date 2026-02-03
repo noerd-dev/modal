@@ -61,7 +61,7 @@
             </button>
 
             <!-- Close Button -->
-            <button @click="show = !show" wire:click.prevent="downModal('{{$modal}}', '{{$source}}', '{{$modalKey}}')" type="button" @class([
+            <button @click="show = !show" wire:click.prevent="$dispatch('closeTopModal')" type="button" @class([
                 'absolute right-0 top-4 pt-2 pr-6 mx-auto my-auto',
         ])>
                 <div

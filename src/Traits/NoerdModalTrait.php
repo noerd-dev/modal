@@ -25,21 +25,6 @@ trait NoerdModalTrait
         return defined('static::COMPONENT') ? static::COMPONENT : $this->getName();
     }
 
-    protected function noerdModalListeners(): array
-    {
-        return [
-            'close-modal-' . $this->componentName() => 'closeModalProcess',
-        ];
-    }
-
-    public function getListeners(): array
-    {
-        return array_merge(
-            $this->listeners,
-            $this->noerdModalListeners(),
-        );
-    }
-
     /**
      * Process mount for modal detail components.
      * Returns false if the model doesn't exist (null, deleted, or inaccessible).
@@ -84,7 +69,7 @@ trait NoerdModalTrait
     {
         $this->dispatch($this->getSelectEvent(), $modelId, $this->context);
 
-        $this->dispatch('close-modal-' . $this->componentName());
+        $this->dispatch('closeTopModal');
     }
 
     public function closeModalProcess(?string $source = null, ?string $modalKey = null): void

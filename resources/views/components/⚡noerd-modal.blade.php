@@ -1,6 +1,7 @@
 <?php
 
 use Livewire\Component;
+use Livewire\Livewire;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Isolate;
@@ -35,11 +36,6 @@ new #[Isolate] class extends Component {
         $this->modals[$modal['key']] = $modal;
 
         $this->markTopModal();
-    }
-
-    public function downModal(string $componentName, ?string $source, ?string $modalKey): void
-    {
-        $this->dispatch('close-modal-' . $componentName, $source, $modalKey);
     }
 
     #[On('closeModal')]
@@ -95,6 +91,35 @@ new #[Isolate] class extends Component {
         }
     }
 
+    #[On('closeTopModal')]
+    public function closeTopModal(): void
+    {
+        foreach ($this->modals as $modal) {
+            if ($modal['topModal']) {
+                // Only dispatch URL param cleanup if the component defines an ID constant
+                try {
+                    $component = Livewire::new($modal['componentName']);
+                    $componentClass = get_class($component);
+                    if (defined("$componentClass::ID")) {
+                        $idParam = constant("$componentClass::ID");
+                        $this->dispatch('clear-modal-url-params', modal: $idParam);
+                    }
+                } catch (\Throwable) {
+                    // Component couldn't be resolved, skip URL param cleanup
+                }
+
+                // Close the modal
+                $this->closeModal($modal['componentName'], $modal['source'], $modal['key']);
+
+                if ($modal['source']) {
+                    $this->dispatch('refreshList-' . $modal['source']);
+                }
+
+                break;
+            }
+        }
+    }
+
 } ?>
 
 <div x-data="{selectedRow: 0, isDragging: false, isLoading: false}">
@@ -104,8 +129,6 @@ new #[Isolate] class extends Component {
                 <div x-data="{ show: true }" wire:key="modal-wrapper-{{$modal['key']}}"
                      @if($modal['show'] && $modal['topModal'])
                          x-init="$store.app.modalOpen = true"
-                     @close-modal-{{$modal['componentName']}}.prevent.stop="$wire.downModal('{{$modal['componentName']}}', '{{$modal['source']}}', '{{$modal['key']}}')"
-                     @keydown.escape.window.prevent.stop="$wire.downModal('{{$modal['componentName']}}', '{{$modal['source']}}', '{{$modal['key']}}')"
                     @endif
                 >
                     <div x-show="show">
