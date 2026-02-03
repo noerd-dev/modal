@@ -1,7 +1,7 @@
 # noerd/modal
 
-A modal system for Livewire 4. Can open every livewire component in a modal. 
-
+**A modal system for Livewire 4.**<br/>
+Open any Livewire component in a modal — no traits, no modifications to your component code.
 ## Installation
 
 ```bash
@@ -19,10 +19,10 @@ Add Assets between your head tags.
 </head>
 ```
 
-Add Modal 
-```bash
-<body>
-<livewire:noerd-modal/> <!-- must be loaded before livewire components -->
+Add Modal Component to your layout
+```html
+<body x-data>
+  <livewire:noerd-modal/> <!-- must be loaded before livewire components -->
 ...
 </head>
 ```
