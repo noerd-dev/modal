@@ -5,6 +5,7 @@ namespace NoerdModal\Providers;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use NoerdModal\Console\Commands\PublishPanelCommand;
 
 class NoerdModalServiceProvider extends ServiceProvider
 {
@@ -20,6 +21,12 @@ class NoerdModalServiceProvider extends ServiceProvider
 
         // Auto-publish built assets if not exists
         $this->publishBuiltAssetsIfNotExist();
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                PublishPanelCommand::class,
+            ]);
+        }
     }
 
     private function publishBuiltAssetsIfNotExist(): void

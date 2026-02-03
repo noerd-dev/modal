@@ -1,7 +1,7 @@
 # noerd/modal
 
 **A modal system for Livewire 4.**<br/>
-Open any Livewire component in a modal — no traits, no modifications to your component code.
+Open any Livewire component in a modal — no traits, no modifications to your livewire component code.
 ## Installation
 
 ```bash
@@ -37,11 +37,26 @@ Opening a Livewire component in a modal via a button
 </button>
 ```
 
-Add parameters like a ID to the modal
+If you want to add parameters to your component which is opened in a modal: 
 ```html
 <button type="button"
-    @click="$modal('livewire-component-name', { exampleId: 'value1' })">
+    @click="$modal('livewire-component-name', { name: 'John Doe' })">
     Open Modal
 </button>
 ```
 
+```php
+<?php
+
+use Livewire\Component;
+
+new class extends Component
+{
+    public string $name = ''; // will be set to John Doe
+};
+?>
+
+<div class="p-4">
+    {{$name}} {{-- Will display John Doe --}}
+</div>
+```
