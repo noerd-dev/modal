@@ -9,9 +9,10 @@ uses(Tests\TestCase::class);
 describe('Modal Manager', function (): void {
     it('opens a modal when noerdModal event is dispatched', function (): void {
         $component = Livewire::test('noerd-modal')
-            ->dispatch('noerdModal',
+            ->dispatch(
+                'noerdModal',
                 modalComponent: 'example.noerd-example-component',
-                arguments: ['name' => 'John Doe']
+                arguments: ['name' => 'John Doe'],
             );
 
         $modals = $component->get('modals');
@@ -54,7 +55,7 @@ describe('Modal Manager', function (): void {
             ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: ['count' => 3]);
 
         $modals = $component->get('modals');
-        $topModals = array_filter($modals, fn ($modal) => $modal['topModal'] === true);
+        $topModals = array_filter($modals, fn($modal) => $modal['topModal'] === true);
 
         expect($topModals)->toHaveCount(1);
 
@@ -70,10 +71,11 @@ describe('Modal Manager', function (): void {
         $modals = $component->get('modals');
         $modalKey = array_keys($modals)[0];
 
-        $component->dispatch('closeModal',
+        $component->dispatch(
+            'closeModal',
             componentName: 'example.noerd-example-component',
             source: null,
-            modalKey: $modalKey
+            modalKey: $modalKey,
         );
 
         expect($component->get('modals'))->toBeEmpty();
@@ -86,10 +88,11 @@ describe('Modal Manager', function (): void {
         $modals = $component->get('modals');
         $modalKey = array_keys($modals)[0];
 
-        $component->dispatch('closeModal',
+        $component->dispatch(
+            'closeModal',
             componentName: 'example.noerd-example-component',
             source: null,
-            modalKey: $modalKey
+            modalKey: $modalKey,
         )->assertDispatched('modal-closed-global');
     });
 
@@ -101,10 +104,11 @@ describe('Modal Manager', function (): void {
         $modals = $component->get('modals');
         $firstModalKey = array_keys($modals)[0];
 
-        $component->dispatch('closeModal',
+        $component->dispatch(
+            'closeModal',
             componentName: 'example.noerd-example-component',
             source: null,
-            modalKey: $firstModalKey
+            modalKey: $firstModalKey,
         )->assertNotDispatched('modal-closed-global');
 
         // One modal should remain
@@ -151,10 +155,11 @@ describe('Modal Manager', function (): void {
 
     it('dispatches refreshList when closeTopModal closes a modal with source', function (): void {
         $component = Livewire::test('noerd-modal')
-            ->dispatch('noerdModal',
+            ->dispatch(
+                'noerdModal',
                 modalComponent: 'example.noerd-example-component',
                 source: 'customers-list',
-                arguments: []
+                arguments: [],
             );
 
         expect($component->get('modals'))->toHaveCount(1);
@@ -177,10 +182,11 @@ describe('Modal Manager', function (): void {
 
     it('stores source parameter in modal', function (): void {
         $component = Livewire::test('noerd-modal')
-            ->dispatch('noerdModal',
+            ->dispatch(
+                'noerdModal',
                 modalComponent: 'example.noerd-example-component',
                 source: 'test-source',
-                arguments: []
+                arguments: [],
             );
 
         $modals = $component->get('modals');

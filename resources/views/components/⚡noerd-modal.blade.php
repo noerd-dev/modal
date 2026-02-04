@@ -4,17 +4,20 @@ use Livewire\Component;
 use Livewire\Livewire;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Url;
 use Livewire\Attributes\Isolate;
 
 new #[Isolate] class extends Component {
+
+    private const URL_PARAM_BLACKLIST = ['filter', 'currentTableFilter', 'currentTab'];
 
     public array $modals = [];
 
     #[On('noerdModal')]
     public function bootModal(
         string  $modalComponent,
-        ?string $source = null,
         array   $arguments = [],
+        ?string $source = null,
     ): void
     {
         $modal = [];
@@ -96,13 +99,18 @@ new #[Isolate] class extends Component {
     {
         foreach ($this->modals as $modal) {
             if ($modal['topModal']) {
-                // Only dispatch URL param cleanup if the component defines an ID constant
+                // Auto-detect #[Url] properties and clear them (except blacklisted)
                 try {
                     $component = Livewire::new($modal['componentName']);
-                    $componentClass = get_class($component);
-                    if (defined("$componentClass::ID")) {
-                        $idParam = constant("$componentClass::ID");
-                        $this->dispatch('clear-modal-url-params', modal: $idParam);
+                    $reflection = new \ReflectionClass($component);
+
+                    foreach ($reflection->getProperties() as $property) {
+                        $attributes = $property->getAttributes(Url::class);
+                        $propertyName = $property->getName();
+
+                        if (!empty($attributes) && !in_array($propertyName, self::URL_PARAM_BLACKLIST)) {
+                            $this->dispatch('clear-modal-url-params', modal: $propertyName);
+                        }
                     }
                 } catch (\Throwable) {
                     // Component couldn't be resolved, skip URL param cleanup
