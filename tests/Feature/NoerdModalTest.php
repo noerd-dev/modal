@@ -194,6 +194,18 @@ describe('Modal Manager', function (): void {
 
         expect($modal['source'])->toBe('test-source');
     });
+
+    it('toggles fullscreen session state', function (): void {
+        $component = Livewire::test('noerd-modal');
+
+        expect(session('modal_fullscreen'))->toBeNull();
+
+        $component->call('toggleFullscreen');
+        expect(session('modal_fullscreen'))->toBeTrue();
+
+        $component->call('toggleFullscreen');
+        expect(session('modal_fullscreen'))->toBeNull();
+    });
 });
 
 describe('Example Component', function (): void {

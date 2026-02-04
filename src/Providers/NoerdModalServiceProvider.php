@@ -5,6 +5,7 @@ namespace NoerdModal\Providers;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use NoerdModal\Console\Commands\PublishExampleCommand;
 use NoerdModal\Console\Commands\PublishPanelCommand;
 
 class NoerdModalServiceProvider extends ServiceProvider
@@ -24,6 +25,7 @@ class NoerdModalServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([
+                PublishExampleCommand::class,
                 PublishPanelCommand::class,
             ]);
         }
