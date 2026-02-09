@@ -9,7 +9,7 @@ use Livewire\Attributes\Isolate;
 
 new #[Isolate] class extends Component {
 
-    private const URL_PARAM_BLACKLIST = ['filter', 'currentTableFilter', 'currentTab'];
+    private const URL_PARAM_BLACKLIST = ['filter', 'currentTab'];
 
     public array $modals = [];
 
