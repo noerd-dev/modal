@@ -78,8 +78,8 @@ describe('PublishPanelCommand', function (): void {
 describe('PublishExampleCommand', function (): void {
     beforeEach(function (): void {
         $this->targetDir = resource_path('views/components/example');
-        $this->componentFile = $this->targetDir . '/⚡noerd-example-component.blade.php';
-        $this->pageFile = $this->targetDir . '/⚡noerd-example-page.blade.php';
+        $this->componentFile = $this->targetDir . '/noerd-example-component.blade.php';
+        $this->pageFile = $this->targetDir . '/noerd-example-page.blade.php';
         $this->routeFile = base_path('routes/web.php');
 
         $content = File::get($this->routeFile);
@@ -131,8 +131,8 @@ describe('PublishExampleCommand', function (): void {
 
         $this->artisan('noerd-modal:publish-example')
             ->assertSuccessful()
-            ->expectsOutput('File already exists: resources/views/components/example/⚡noerd-example-component.blade.php')
-            ->expectsOutput('File already exists: resources/views/components/example/⚡noerd-example-page.blade.php');
+            ->expectsOutput('File already exists: resources/views/components/example/noerd-example-component.blade.php')
+            ->expectsOutput('File already exists: resources/views/components/example/noerd-example-page.blade.php');
 
         expect(File::get($this->componentFile))->toBe('existing component');
         expect(File::get($this->pageFile))->toBe('existing page');
@@ -180,8 +180,8 @@ describe('PublishExampleCommand', function (): void {
         $sourceDir = base_path('app-modules/noerd-modal/resources/views/components/example');
 
         expect(File::get($this->componentFile))
-            ->toBe(File::get($sourceDir . '/⚡noerd-example-component.blade.php'));
+            ->toBe(File::get($sourceDir . '/noerd-example-component.blade.php'));
         expect(File::get($this->pageFile))
-            ->toBe(File::get($sourceDir . '/⚡noerd-example-page.blade.php'));
+            ->toBe(File::get($sourceDir . '/noerd-example-page.blade.php'));
     });
 });

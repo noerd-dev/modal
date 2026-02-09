@@ -25,8 +25,8 @@ class PublishExampleCommand extends Command
         $targetDir = resource_path('views/components/example');
 
         $files = [
-            '⚡noerd-example-component.blade.php',
-            '⚡noerd-example-page.blade.php',
+            'noerd-example-component.blade.php',
+            'noerd-example-page.blade.php',
         ];
 
         File::ensureDirectoryExists($targetDir);
