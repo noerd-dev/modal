@@ -2,7 +2,7 @@
     "name": "noerd/modal",
     "description": "Open each livewire component in a modal window.",
     "type": "library",
-    "version": "v0.2.0",
+    "version": "v0.2.1",
     "license": "proprietary",
     "require": {
         "livewire/livewire": "^4.0"
