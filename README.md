@@ -1,7 +1,8 @@
 # noerd/modal
 
-**A modal system for Livewire 4.**<br/>
+**A modal system for Laravel Livewire 4.**<br/>
 Open any Livewire component in a modal — no traits, no modifications to your livewire component code.
+
 ## Installation
 
 ```bash

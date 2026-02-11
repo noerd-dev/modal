@@ -42,7 +42,6 @@ new #[Isolate] class extends Component {
         $this->markTopModal();
     }
 
-    #[On('closeModal')]
     public function closeModal(string $componentName, ?string $source, ?string $modalKey): void
     {
         $modals = $this->modals;
