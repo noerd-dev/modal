@@ -71,12 +71,7 @@ describe('Modal Manager', function (): void {
         $modals = $component->get('modals');
         $modalKey = array_keys($modals)[0];
 
-        $component->dispatch(
-            'closeModal',
-            componentName: 'example.noerd-example-component',
-            source: null,
-            modalKey: $modalKey,
-        );
+        $component->call('closeModal', 'example.noerd-example-component', null, $modalKey);
 
         expect($component->get('modals'))->toBeEmpty();
     });
@@ -88,12 +83,8 @@ describe('Modal Manager', function (): void {
         $modals = $component->get('modals');
         $modalKey = array_keys($modals)[0];
 
-        $component->dispatch(
-            'closeModal',
-            componentName: 'example.noerd-example-component',
-            source: null,
-            modalKey: $modalKey,
-        )->assertDispatched('modal-closed-global');
+        $component->call('closeModal', 'example.noerd-example-component', null, $modalKey)
+            ->assertDispatched('modal-closed-global');
     });
 
     it('does not dispatch modal-closed-global when modals remain open', function (): void {
@@ -104,12 +95,8 @@ describe('Modal Manager', function (): void {
         $modals = $component->get('modals');
         $firstModalKey = array_keys($modals)[0];
 
-        $component->dispatch(
-            'closeModal',
-            componentName: 'example.noerd-example-component',
-            source: null,
-            modalKey: $firstModalKey,
-        )->assertNotDispatched('modal-closed-global');
+        $component->call('closeModal', 'example.noerd-example-component', null, $firstModalKey)
+            ->assertNotDispatched('modal-closed-global');
 
         // One modal should remain
         expect($component->get('modals'))->toHaveCount(1);
