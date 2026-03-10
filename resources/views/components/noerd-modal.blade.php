@@ -18,6 +18,7 @@ new #[Isolate] class extends Component {
         string  $modalComponent,
         array   $arguments = [],
         ?string $source = null,
+        ?string $position = null,
     ): void
     {
         $modal = [];
@@ -26,6 +27,7 @@ new #[Isolate] class extends Component {
         $modal['show'] = true;
         $modal['topModal'] = false;
         $modal['source'] = $source;
+        $modal['position'] = $position ?? config('noerd-modal.position', 'center');
         $modal['key'] = md5(serialize($arguments) . microtime());
 
         $iteration = 1;
@@ -105,9 +107,8 @@ new #[Isolate] class extends Component {
 
                 // Close the modal
                 $this->closeModal($modal['componentName'], $modal['source'], $modal['key']);
-
                 if ($modal['source']) {
-                    $this->dispatch('refreshList-' . $modal['source']);
+                    $this->dispatch('refreshList-' . Str::afterLast($modal['source'], '.'));
                 }
 
                 break;
@@ -182,7 +183,8 @@ new #[Isolate] class extends Component {
                                                   :iteration="$modal['iteration']"
                                                   :source="$modal['source']"
                                                   :modalKey="$modal['key']"
-                                                  :modal="$modal['componentName']">
+                                                  :modal="$modal['componentName']"
+                                                  :position="$modal['position']">
                                 <div wire:ignore>
                                     @livewire($modal['componentName'], $modal['arguments'], key($modal['key']))
                                 </div>

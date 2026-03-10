@@ -1,9 +1,10 @@
 document.addEventListener('alpine:init', () => {
     // Modal magic
     Alpine.magic('modal', () => {
-        return (component, args = {}, source = null) => {
+        return (component, args = {}, source = null, position = null) => {
             const params = { modalComponent: component, arguments: args };
             if (source) params.source = source;
+            if (position) params.position = position;
             showModalLoading();
             Livewire.dispatch('noerdModal', params);
         };
