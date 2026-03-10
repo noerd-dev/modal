@@ -12,13 +12,23 @@ class NoerdModalServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
+        $this->mergeConfigFrom(__DIR__ . '/../../config/noerd-modal.php', 'noerd-modal');
+
         $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'noerd');
         Livewire::addLocation(viewPath: __DIR__ . '/../../resources/views/components');
+
+        // Publish config
+        $this->publishes([
+            __DIR__ . '/../../config/noerd-modal.php' => config_path('noerd-modal.php'),
+        ], 'noerd-modal-config');
 
         // Publish built Vite assets
         $this->publishes([
             __DIR__ . '/../../dist/build' => public_path('vendor/noerd-modal'),
         ], 'noerd-modal-assets');
+
+        // Auto-publish config if not exists
+        $this->publishConfigIfNotExists();
 
         // Auto-publish built assets if not exists
         $this->publishBuiltAssetsIfNotExist();
@@ -29,6 +39,18 @@ class NoerdModalServiceProvider extends ServiceProvider
                 PublishPanelCommand::class,
             ]);
         }
+    }
+
+    private function publishConfigIfNotExists(): void
+    {
+        $targetPath = config_path('noerd-modal.php');
+        $sourcePath = __DIR__ . '/../../config/noerd-modal.php';
+
+        if (! File::exists($sourcePath) || File::exists($targetPath)) {
+            return;
+        }
+
+        File::copy($sourcePath, $targetPath);
     }
 
     private function publishBuiltAssetsIfNotExist(): void
