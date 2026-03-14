@@ -77,7 +77,7 @@
                 'bg-white mx-auto shadow-sm relative',
                 'max-w-full h-[100dvh] rounded-none',
                 'sm:max-w-full sm:h-[calc(100dvh-3.5rem)] sm:mt-14 sm:rounded-none' => $isFullscreen,
-                'sm:max-w-7xl sm:h-full sm:min-h-[min(500px,calc(100dvh-7rem))] sm:max-h-[calc(100vh-112px)] sm:rounded' => !$isFullscreen,
+                'sm:max-w-7xl sm:h-full sm:max-h-[calc(100vh-112px)] sm:rounded' => !$isFullscreen,
             ])>
 
                 <!-- Fullscreen Toggle Button (nur Desktop) -->
