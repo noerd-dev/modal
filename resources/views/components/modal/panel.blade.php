@@ -35,7 +35,7 @@
              x-transition:leave-start="translate-x-0"
              x-transition:leave-end="translate-x-full"
         >
-            <div x-trap.noscroll="open" class="bg-white ml-auto shadow-sm relative max-w-7xl h-[100dvh]">
+            <div x-trap.noscroll="open" class="bg-white ml-auto shadow-sm relative max-w-7xl h-[100dvh]" x-data="{ isRight: true }">
 
                 <!-- Close Button -->
                 <button @click="show = !show" wire:click.prevent="$dispatch('closeTopModal')" type="button"
@@ -51,7 +51,7 @@
                     </div>
                 </button>
 
-                <div x-data="{ isModal: true}" class="p-6 pt-12 h-full overflow-y-auto"
+                <div x-data="{ isModal: true, isRight: true }" class="p-6 pt-12 h-full overflow-y-auto"
                      x-effect="if(open) setTimeout(() => { const el = $el.querySelector('input:not([type=hidden]):not([disabled]), textarea:not([disabled]), select:not([disabled])'); if(el) el.focus(); }, 150)">
                     {{ $slot }}
                 </div>
@@ -77,7 +77,7 @@
                 'bg-white mx-auto shadow-sm relative',
                 'max-w-full h-[100dvh] rounded-none',
                 'sm:max-w-full sm:h-[calc(100dvh-3.5rem)] sm:mt-14 sm:rounded-none' => $isFullscreen,
-                'sm:max-w-7xl sm:h-full sm:min-h-[min(500px,calc(100dvh-7rem))] sm:max-h-[calc(100dvh-3.5rem)] sm:rounded' => !$isFullscreen,
+                'sm:max-w-7xl sm:h-full sm:min-h-[min(500px,calc(100dvh-7rem))] sm:max-h-[calc(100vh-112px)] sm:rounded' => !$isFullscreen,
             ])>
 
                 <!-- Fullscreen Toggle Button (nur Desktop) -->
@@ -113,7 +113,7 @@
                     </div>
                 </button>
 
-                <div x-data="{ isModal: true}" class="p-6 pt-12"
+                <div x-data="{ isModal: true, isRight: false }" class="p-6 pt-12"
                      x-effect="if(open) setTimeout(() => { const el = $el.querySelector('input:not([type=hidden]):not([disabled]), textarea:not([disabled]), select:not([disabled])'); if(el) el.focus(); }, 150)">
                     {{ $slot }}
                 </div>
