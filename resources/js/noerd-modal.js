@@ -14,6 +14,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.store('app', {
         currentId: null,
         modalOpen: false,
+        modalFullscreen: false,
         modalLoading: false,
         _modalLoadingTimeout: null,
         setId(id) {
@@ -50,6 +51,7 @@ document.addEventListener('set-app-id', (event) => {
 
 document.addEventListener('modal-closed-global', () => {
     Alpine.store('app').modalOpen = false;
+    Alpine.store('app').modalFullscreen = false;
     hideModalLoading();
 });
 

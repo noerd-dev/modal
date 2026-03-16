@@ -5,7 +5,7 @@
 <div
     x-noerd::dialog
     x-show="open"
-    x-init="setTimeout(() => open = true, 0)"
+    x-init="setTimeout(() => { open = true; $store.app.modalFullscreen = {{ $isFullscreen ? 'true' : 'false' }} }, 0)"
     x-transition:enter="transition ease-out duration-300"
     x-transition:enter-start="opacity-0"
     x-transition:enter-end="opacity-100"
@@ -35,7 +35,29 @@
              x-transition:leave-start="translate-x-0"
              x-transition:leave-end="translate-x-full"
         >
-            <div x-trap.noscroll="open" class="bg-white ml-auto shadow-sm relative max-w-7xl h-[100dvh]" x-data="{ isRight: true }">
+            <div x-trap.noscroll="open" @class([
+                'bg-white ml-auto shadow-sm relative h-[100dvh]',
+                'max-w-full' => $isFullscreen,
+                'max-w-7xl' => !$isFullscreen,
+            ]) x-data="{ isRight: true }">
+
+                <!-- Fullscreen Toggle Button (desktop only) -->
+                <button wire:click.prevent="toggleFullscreen" type="button" class="hidden focus:outline-none sm:block absolute right-0 top-4 pt-2 pr-16 mx-auto my-auto">
+                    <div class="hover:bg-gray-100 z-50 hover:text-black border rounded-sm p-1.5 text-gray-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+                        <span class="sr-only">Toggle fullscreen</span>
+                        @if($isFullscreen)
+                            <!-- Minimize Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+                            </svg>
+                        @else
+                            <!-- Maximize Icon -->
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                            </svg>
+                        @endif
+                    </div>
+                </button>
 
                 <!-- Close Button -->
                 <button @click="show = !show" wire:click.prevent="$dispatch('closeTopModal')" type="button"
