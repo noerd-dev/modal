@@ -1,6 +1,8 @@
 @php
     $isFullscreen = session('modal_fullscreen', false);
     $isRight = ($position ?? 'center') === 'right';
+    $topModal = $topModal ?? true;
+    $isStacked = ($iteration ?? 1) > 1;
 @endphp
 <div
     x-noerd::dialog
@@ -20,7 +22,8 @@
     <!-- Overlay -->
     <div x-noerd::dialog:overlay
         @class([
-            'fixed inset-0 bg-gray-800/50',
+            'fixed inset-0',
+            'bg-gray-800/50' => !$isStacked,
         ])>
     </div>
 
@@ -40,6 +43,10 @@
                 'max-w-full' => $isFullscreen,
                 'max-w-7xl' => !$isFullscreen,
             ]) x-data="{ isRight: true }">
+
+                @if(!$topModal)
+                    <div class="absolute inset-0 bg-gray-800/20 z-40 pointer-events-none"></div>
+                @endif
 
                 <!-- Fullscreen Toggle Button (desktop only) -->
                 <button wire:click.prevent="toggleFullscreen" type="button" class="hidden focus:outline-none sm:block absolute right-0 top-4 pt-2 pr-16 mx-auto my-auto">
@@ -101,6 +108,10 @@
                 'sm:max-w-full sm:h-[calc(100dvh-3.5rem)] sm:mt-14 sm:rounded-none' => $isFullscreen,
                 'sm:max-w-7xl sm:h-full sm:max-h-[calc(100vh-112px)] sm:rounded' => !$isFullscreen,
             ])>
+
+                @if(!$topModal)
+                    <div class="absolute inset-0 bg-gray-800/20 z-40 pointer-events-none"></div>
+                @endif
 
                 <!-- Fullscreen Toggle Button (nur Desktop) -->
                 <button wire:click.prevent="toggleFullscreen" type="button" class="hidden focus:outline-none sm:block absolute right-0 top-4 pt-2 pr-16 mx-auto my-auto">

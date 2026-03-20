@@ -160,7 +160,7 @@ new #[Isolate] class extends Component {
          x-transition:leave="transition ease-in duration-100"
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-[60] flex items-center justify-center bg-gray-800/50"
+         class="fixed inset-0 z-[60] flex items-center justify-center"
          style="display: none;"
     >
         <svg class="animate-spin h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -184,7 +184,8 @@ new #[Isolate] class extends Component {
                                                   :source="$modal['source']"
                                                   :modalKey="$modal['key']"
                                                   :modal="$modal['componentName']"
-                                                  :position="$modal['position']">
+                                                  :position="$modal['position']"
+                                                  :topModal="$modal['topModal']">
                                 <div wire:ignore>
                                     @livewire($modal['componentName'], $modal['arguments'], key($modal['key']))
                                 </div>
