@@ -38,7 +38,7 @@
              x-transition:leave-start="translate-x-0"
              x-transition:leave-end="translate-x-full"
         >
-            <div x-trap.noscroll="open" @class([
+            <div x-trap="open" @class([
                 'bg-white ml-auto shadow-sm relative h-[100dvh]',
                 'max-w-full' => $isFullscreen,
                 'max-w-7xl' => !$isFullscreen,
@@ -102,7 +102,7 @@
              x-transition:leave-start="translate-y-0"
              x-transition:leave-end="translate-y-full"
         >
-            <div x-trap.noscroll="open" @class([
+            <div x-trap="open" @class([
                 'bg-white mx-auto shadow-sm relative',
                 'max-w-full h-[100dvh] rounded-none',
                 'sm:max-w-full sm:h-[calc(100dvh-3.5rem)] sm:mt-14 sm:rounded-none' => $isFullscreen,

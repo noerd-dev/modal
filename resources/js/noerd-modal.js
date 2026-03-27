@@ -21,6 +21,26 @@ document.addEventListener('alpine:init', () => {
             this.currentId = id;
         }
     });
+
+    // Prevent background scrolling while keeping scrollbar visible
+    Alpine.effect(() => {
+        if (Alpine.store('app').modalOpen) {
+            const hasScrollbar = document.body.scrollHeight > window.innerHeight;
+            if (hasScrollbar) {
+                const scrollY = window.scrollY;
+                document.body.dataset.scrollY = scrollY;
+                document.body.style.position = 'fixed';
+                document.body.style.top = `-${scrollY}px`;
+                document.body.style.width = '100%';
+                document.body.style.overflowY = 'scroll';
+            } else {
+                // Reset paddingRight added by Alpine's dialog disableScrolling()
+                requestAnimationFrame(() => {
+                    document.documentElement.style.paddingRight = '';
+                });
+            }
+        }
+    });
 });
 
 function showModalLoading() {
@@ -52,6 +72,12 @@ document.addEventListener('set-app-id', (event) => {
 document.addEventListener('modal-closed-global', () => {
     Alpine.store('app').modalOpen = false;
     Alpine.store('app').modalFullscreen = false;
+    const scrollY = document.body.dataset.scrollY || '0';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    document.body.style.overflowY = '';
+    window.scrollTo(0, parseInt(scrollY));
     hideModalLoading();
 });
 
