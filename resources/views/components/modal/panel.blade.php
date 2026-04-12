@@ -49,35 +49,30 @@
                 @endif
 
                 <!-- Fullscreen Toggle Button (desktop only) -->
-                <button wire:click.prevent="toggleFullscreen" type="button" class="hidden focus:outline-none sm:block absolute right-0 top-4 pt-2 pr-16 mx-auto my-auto">
-                    <div class="hover:bg-gray-100 z-50 hover:text-black border rounded-sm p-1.5 text-gray-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
-                        <span class="sr-only">Toggle fullscreen</span>
-                        @if($isFullscreen)
-                            <!-- Minimize Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
-                            </svg>
-                        @else
-                            <!-- Maximize Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-                            </svg>
-                        @endif
-                    </div>
+                <button type="button"
+                        wire:click.prevent="toggleFullscreen"
+                        class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-7 w-7 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-16 border! border-gray-300!">
+                    <span class="sr-only">Toggle fullscreen</span>
+                    @if($isFullscreen)
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
+                        </svg>
+                    @else
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25-5.25v4.5m0-4.5h-4.5m4.5 0L15 9m5.25 11.25v-4.5m0 4.5h-4.5m4.5 0L15 15M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15" />
+                        </svg>
+                    @endif
                 </button>
 
                 <!-- Close Button -->
-                <button @click="show = !show" wire:click.prevent="$dispatch('closeTopModal')" type="button"
-                        class="absolute right-0 top-4 pt-2 pr-6 mx-auto my-auto focus:outline-none">
-                    <div
-                        class="hover:bg-gray-100 z-50 hover:text-black border rounded-sm p-1.5 text-gray-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
-                        <span class="sr-only">Close modal</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd"
-                                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                  clip-rule="evenodd"/>
-                        </svg>
-                    </div>
+                <button type="button"
+                        @click="show = !show"
+                        wire:click.prevent="$dispatch('closeTopModal')"
+                        class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-7 w-7 hover:bg-gray-100 absolute! right-0 top-4 mt-2 mr-6 border! border-gray-300! text-gray-600!">
+                    <span class="sr-only">Close modal</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
                 </button>
 
                 <div x-data="{ isModal: true, isRight: true }" class="p-6 pt-12 h-full overflow-y-auto"
@@ -113,22 +108,20 @@
                     <div class="absolute inset-0 bg-gray-800/20 z-40 pointer-events-none"></div>
                 @endif
 
-                <!-- Fullscreen Toggle Button (nur Desktop) -->
-                <button wire:click.prevent="toggleFullscreen" type="button" class="hidden focus:outline-none sm:block absolute right-0 top-4 pt-2 pr-16 mx-auto my-auto">
-                    <div class="hover:bg-gray-100 z-50 hover:text-black border rounded-sm p-1.5 text-gray-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
-                        <span class="sr-only">Toggle fullscreen</span>
-                        @if($isFullscreen)
-                            <!-- Minimize Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
-                            </svg>
-                        @else
-                            <!-- Maximize Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-                            </svg>
-                        @endif
-                    </div>
+                <!-- Fullscreen Toggle Button (desktop only) -->
+                <button type="button"
+                        wire:click.prevent="toggleFullscreen"
+                        class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-7 w-7 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-16 border! border-gray-300!">
+                    <span class="sr-only">Toggle fullscreen</span>
+                    @if($isFullscreen)
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
+                        </svg>
+                    @else
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25-5.25v4.5m0-4.5h-4.5m4.5 0L15 9m5.25 11.25v-4.5m0 4.5h-4.5m4.5 0L15 15M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15" />
+                        </svg>
+                    @endif
                 </button>
 
                 <!-- Close Button -->
