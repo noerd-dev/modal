@@ -51,7 +51,7 @@
                 <!-- Fullscreen Toggle Button (desktop only) -->
                 <button type="button"
                         wire:click.prevent="toggleFullscreen"
-                        class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-7 w-7 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-16 border! border-gray-300!">
+                        class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-16 border! border-gray-300!">
                     <span class="sr-only">Toggle fullscreen</span>
                     @if($isFullscreen)
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -68,7 +68,7 @@
                 <button type="button"
                         @click="show = !show"
                         wire:click.prevent="$dispatch('closeTopModal')"
-                        class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-7 w-7 hover:bg-gray-100 absolute! right-0 top-4 mt-2 mr-6 border! border-gray-300! text-gray-600!">
+                        class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 hover:bg-gray-100 absolute! right-0 top-4 mt-2 mr-6 border! border-gray-300! text-gray-600!">
                     <span class="sr-only">Close modal</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -111,7 +111,7 @@
                 <!-- Fullscreen Toggle Button (desktop only) -->
                 <button type="button"
                         wire:click.prevent="toggleFullscreen"
-                        class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-7 w-7 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-16 border! border-gray-300!">
+                        class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-16 border! border-gray-300!">
                     <span class="sr-only">Toggle fullscreen</span>
                     @if($isFullscreen)
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -125,18 +125,14 @@
                 </button>
 
                 <!-- Close Button -->
-                <button @click="show = !show" wire:click.prevent="$dispatch('closeTopModal')" type="button" @class([
-                    'absolute right-0 top-4 pt-2 pr-6 mx-auto my-auto focus:outline-none',
-            ])>
-                    <div
-                        class="hover:bg-gray-100 z-50 hover:text-black border rounded-sm p-1.5 text-gray-600 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
-                        <span class="sr-only">Close modal</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd"
-                                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                                  clip-rule="evenodd"/>
-                        </svg>
-                    </div>
+                <button @click="show = !show" wire:click.prevent="$dispatch('closeTopModal')" type="button"
+                        class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 hover:bg-gray-100 absolute! right-0 top-4 mt-2 mr-6 border! border-gray-300! text-gray-600!">
+                    <span class="sr-only">Close modal</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                              clip-rule="evenodd"/>
+                    </svg>
                 </button>
 
                 <div x-data="{ isModal: true, isRight: false }" class="p-6 pt-12"
