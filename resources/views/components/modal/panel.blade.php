@@ -39,9 +39,10 @@
              x-transition:leave-end="translate-x-full"
         >
             <div x-trap="open" @class([
-                'bg-white ml-auto shadow-sm relative h-[100dvh]',
+                'bg-white ml-auto shadow-sm relative h-[100dvh] transition-transform duration-200 ease-out origin-right',
                 'max-w-full' => $isFullscreen,
                 'max-w-7xl' => !$isFullscreen,
+                'scale-[0.97]' => !$topModal,
             ]) x-data="{ isRight: true }">
 
                 @if(!$topModal)
@@ -98,10 +99,11 @@
              x-transition:leave-end="translate-y-full"
         >
             <div x-trap="open" @class([
-                'bg-white mx-auto shadow-sm relative',
+                'bg-white mx-auto shadow-sm relative transition-transform duration-200 ease-out',
                 'max-w-full h-[100dvh] rounded-none',
                 'sm:max-w-full sm:h-[calc(100dvh-3.5rem)] sm:mt-14 sm:rounded-none' => $isFullscreen,
                 'sm:max-w-7xl sm:h-full sm:max-h-[calc(100vh-112px)] sm:rounded' => !$isFullscreen,
+                'scale-[0.97]' => !$topModal,
             ])>
 
                 @if(!$topModal)
