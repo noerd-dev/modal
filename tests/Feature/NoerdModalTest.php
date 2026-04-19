@@ -8,10 +8,10 @@ uses(Tests\TestCase::class);
 
 describe('Modal Manager', function (): void {
     it('opens a modal when noerdModal event is dispatched', function (): void {
-        $component = Livewire::test('noerd-modal')
+        $component = Livewire::test('noerd-modal::noerd-modal')
             ->dispatch(
                 'noerdModal',
-                modalComponent: 'example.noerd-example-component',
+                modalComponent: 'noerd-modal::example.noerd-example-component',
                 arguments: ['name' => 'John Doe'],
             );
 
@@ -19,15 +19,15 @@ describe('Modal Manager', function (): void {
         expect($modals)->toHaveCount(1);
 
         $modal = array_values($modals)[0];
-        expect($modal['componentName'])->toBe('example.noerd-example-component');
+        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
         expect($modal['arguments'])->toBe(['name' => 'John Doe']);
         expect($modal['show'])->toBeTrue();
     });
 
     it('creates unique modal keys for each modal', function (): void {
-        $component = Livewire::test('noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: [])
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: ['count' => 2]);
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: [])
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['count' => 2]);
 
         $modals = $component->get('modals');
         $keys = array_keys($modals);
@@ -37,9 +37,9 @@ describe('Modal Manager', function (): void {
     });
 
     it('tracks modal iteration for stacking', function (): void {
-        $component = Livewire::test('noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: [])
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: ['count' => 2]);
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: [])
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['count' => 2]);
 
         $modals = $component->get('modals');
         $iterations = array_column($modals, 'iteration');
@@ -49,10 +49,10 @@ describe('Modal Manager', function (): void {
     });
 
     it('marks only the top modal as topModal', function (): void {
-        $component = Livewire::test('noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: [])
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: ['count' => 2])
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: ['count' => 3]);
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: [])
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['count' => 2])
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['count' => 3]);
 
         $modals = $component->get('modals');
         $topModals = array_filter($modals, fn($modal) => $modal['topModal'] === true);
@@ -65,37 +65,37 @@ describe('Modal Manager', function (): void {
     });
 
     it('closes a modal when closeModal event is dispatched', function (): void {
-        $component = Livewire::test('noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: []);
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: []);
 
         $modals = $component->get('modals');
         $modalKey = array_keys($modals)[0];
 
-        $component->call('closeModal', 'example.noerd-example-component', null, $modalKey);
+        $component->call('closeModal', 'noerd-modal::example.noerd-example-component', null, $modalKey);
 
         expect($component->get('modals'))->toBeEmpty();
     });
 
     it('dispatches modal-closed-global when all modals are closed', function (): void {
-        $component = Livewire::test('noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: []);
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: []);
 
         $modals = $component->get('modals');
         $modalKey = array_keys($modals)[0];
 
-        $component->call('closeModal', 'example.noerd-example-component', null, $modalKey)
+        $component->call('closeModal', 'noerd-modal::example.noerd-example-component', null, $modalKey)
             ->assertDispatched('modal-closed-global');
     });
 
     it('does not dispatch modal-closed-global when modals remain open', function (): void {
-        $component = Livewire::test('noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: [])
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: ['count' => 2]);
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: [])
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['count' => 2]);
 
         $modals = $component->get('modals');
         $firstModalKey = array_keys($modals)[0];
 
-        $component->call('closeModal', 'example.noerd-example-component', null, $firstModalKey)
+        $component->call('closeModal', 'noerd-modal::example.noerd-example-component', null, $firstModalKey)
             ->assertNotDispatched('modal-closed-global');
 
         // One modal should remain
@@ -103,10 +103,10 @@ describe('Modal Manager', function (): void {
     });
 
     it('closes only the top modal when closeTopModal is dispatched', function (): void {
-        $component = Livewire::test('noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: ['id' => 1])
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: ['id' => 2])
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: ['id' => 3]);
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 1])
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 2])
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 3]);
 
         expect($component->get('modals'))->toHaveCount(3);
 
@@ -118,9 +118,9 @@ describe('Modal Manager', function (): void {
     });
 
     it('closes nested modals one by one with multiple closeTopModal dispatches', function (): void {
-        $component = Livewire::test('noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: ['id' => 1])
-            ->dispatch('noerdModal', modalComponent: 'example.noerd-example-component', arguments: ['id' => 2]);
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 1])
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 2]);
 
         expect($component->get('modals'))->toHaveCount(2);
 
@@ -141,10 +141,10 @@ describe('Modal Manager', function (): void {
     });
 
     it('dispatches refreshList when closeTopModal closes a modal with source', function (): void {
-        $component = Livewire::test('noerd-modal')
+        $component = Livewire::test('noerd-modal::noerd-modal')
             ->dispatch(
                 'noerdModal',
-                modalComponent: 'example.noerd-example-component',
+                modalComponent: 'noerd-modal::example.noerd-example-component',
                 source: 'customers-list',
                 arguments: [],
             );
@@ -158,7 +158,7 @@ describe('Modal Manager', function (): void {
     });
 
     it('does nothing when closeTopModal is dispatched with no modals open', function (): void {
-        $component = Livewire::test('noerd-modal')
+        $component = Livewire::test('noerd-modal::noerd-modal')
             ->dispatch('closeTopModal');
 
         // Should not dispatch any refresh event since there's nothing to close
@@ -168,10 +168,10 @@ describe('Modal Manager', function (): void {
     });
 
     it('stores source parameter in modal', function (): void {
-        $component = Livewire::test('noerd-modal')
+        $component = Livewire::test('noerd-modal::noerd-modal')
             ->dispatch(
                 'noerdModal',
-                modalComponent: 'example.noerd-example-component',
+                modalComponent: 'noerd-modal::example.noerd-example-component',
                 source: 'test-source',
                 arguments: [],
             );
@@ -182,8 +182,61 @@ describe('Modal Manager', function (): void {
         expect($modal['source'])->toBe('test-source');
     });
 
+    it('closes every open modal when closeAllModals is dispatched', function (): void {
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 1])
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 2])
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 3]);
+
+        expect($component->get('modals'))->toHaveCount(3);
+
+        $component->dispatch('closeAllModals');
+
+        expect($component->get('modals'))->toBeEmpty();
+    });
+
+    it('dispatches modal-closed-global once when closeAllModals clears the stack', function (): void {
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 1])
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 2]);
+
+        $component->dispatch('closeAllModals')
+            ->assertDispatched('modal-closed-global');
+    });
+
+    it('dispatches refreshList for each sourced modal on closeAllModals', function (): void {
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch(
+                'noerdModal',
+                modalComponent: 'noerd-modal::example.noerd-example-component',
+                source: 'customers-list',
+                arguments: ['id' => 1],
+            )
+            ->dispatch(
+                'noerdModal',
+                modalComponent: 'noerd-modal::example.noerd-example-component',
+                source: 'products-list',
+                arguments: ['id' => 2],
+            );
+
+        $component->dispatch('closeAllModals')
+            ->assertDispatched('refreshList-customers-list')
+            ->assertDispatched('refreshList-products-list');
+
+        expect($component->get('modals'))->toBeEmpty();
+    });
+
+    it('does nothing when closeAllModals is dispatched with no modals open', function (): void {
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('closeAllModals');
+
+        $component->assertNotDispatched('modal-closed-global');
+        $component->assertNotDispatched('refreshList-*');
+        expect($component->get('modals'))->toBeEmpty();
+    });
+
     it('toggles fullscreen session state', function (): void {
-        $component = Livewire::test('noerd-modal');
+        $component = Livewire::test('noerd-modal::noerd-modal');
 
         expect(session('modal_fullscreen'))->toBeNull();
 
@@ -197,19 +250,19 @@ describe('Modal Manager', function (): void {
 
 describe('Example Component', function (): void {
     it('initializes count to 1', function (): void {
-        Livewire::test('example.noerd-example-component')
+        Livewire::test('noerd-modal::example.noerd-example-component')
             ->assertSet('count', 1);
     });
 
     it('increments count when upCount is called', function (): void {
-        Livewire::test('example.noerd-example-component')
+        Livewire::test('noerd-modal::example.noerd-example-component')
             ->assertSet('count', 1)
             ->call('upCount')
             ->assertSet('count', 2);
     });
 
     it('increments count multiple times', function (): void {
-        Livewire::test('example.noerd-example-component')
+        Livewire::test('noerd-modal::example.noerd-example-component')
             ->assertSet('count', 1)
             ->call('upCount')
             ->assertSet('count', 2)
@@ -220,13 +273,13 @@ describe('Example Component', function (): void {
     });
 
     it('can set count via wire:model', function (): void {
-        Livewire::test('example.noerd-example-component')
+        Livewire::test('noerd-modal::example.noerd-example-component')
             ->set('count', 5)
             ->assertSet('count', 5);
     });
 
     it('displays the current count', function (): void {
-        Livewire::test('example.noerd-example-component')
+        Livewire::test('noerd-modal::example.noerd-example-component')
             ->assertSee('Counter: 1')
             ->call('upCount')
             ->assertSee('Counter: 2');

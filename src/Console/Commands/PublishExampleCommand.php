@@ -58,7 +58,7 @@ class PublishExampleCommand extends Command
             return;
         }
 
-        $route = "\n// Noerd Modal Example\nRoute::livewire('noerd-example-modal', 'example.noerd-example-page')->name('noerd-modal-example');\n";
+        $route = "\n// Noerd Modal Example\nRoute::livewire('noerd-example-modal', 'noerd-modal::example.noerd-example-page')->name('noerd-modal-example');\n";
 
         File::append($routeFile, $route);
         $this->info('Route added to routes/web.php');

@@ -116,6 +116,27 @@ new #[Isolate] class extends Component {
         }
     }
 
+    #[On('closeAllModals')]
+    public function closeAllModals(): void
+    {
+        if (empty($this->modals)) {
+            return;
+        }
+
+        foreach ($this->modals as $modal) {
+            foreach ($modal['urlParameters'] ?? [] as $paramName) {
+                $this->dispatch('clear-modal-url-params', modal: $paramName);
+            }
+
+            if ($modal['source']) {
+                $this->dispatch('refreshList-' . Str::afterLast($modal['source'], '.'));
+            }
+        }
+
+        $this->modals = [];
+        $this->dispatch('modal-closed-global');
+    }
+
     private function resolveUrlParameters(string $componentName): array
     {
         try {
