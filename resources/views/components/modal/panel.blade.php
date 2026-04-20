@@ -46,7 +46,7 @@
             ]) x-data="{ isRight: true }">
 
                 @if(!$topModal)
-                    <div class="absolute inset-0 bg-gray-800/20 z-40 pointer-events-none"></div>
+                    <div class="absolute inset-0 bg-gray-800/20 z-[51] pointer-events-none"></div>
                 @endif
 
                 <!-- Fullscreen Toggle Button (desktop only) -->
@@ -107,7 +107,7 @@
             ])>
 
                 @if(!$topModal)
-                    <div class="absolute inset-0 bg-gray-800/20 z-40 pointer-events-none"></div>
+                    <div class="absolute inset-0 bg-gray-800/20 z-[51] pointer-events-none"></div>
                 @endif
 
                 <!-- Fullscreen Toggle Button (desktop only) -->
