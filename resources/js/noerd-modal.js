@@ -1,3 +1,19 @@
+// Track the scrollbar width of the document before any modal is opened.
+// We capture this outside of modal lifecycle events so the value reflects
+// the page state BEFORE the modal DOM is teleported into <body>, which
+// would otherwise distort the measurement.
+let preModalScrollbarWidth = 0;
+
+function measurePreModalScrollbarWidth() {
+    if (Alpine.store('app')?.modalOpen) {
+        return;
+    }
+    preModalScrollbarWidth = Math.max(
+        0,
+        window.innerWidth - document.documentElement.clientWidth
+    );
+}
+
 document.addEventListener('alpine:init', () => {
     // Modal magic
     Alpine.magic('modal', () => {
@@ -5,6 +21,7 @@ document.addEventListener('alpine:init', () => {
             const params = { modalComponent: component, arguments: args };
             if (source) params.source = source;
             if (position) params.position = position;
+            measurePreModalScrollbarWidth();
             showModalLoading();
             Livewire.dispatch('noerdModal', params);
         };
@@ -22,25 +39,55 @@ document.addEventListener('alpine:init', () => {
         }
     });
 
-    // Prevent background scrolling while keeping scrollbar visible
+    measurePreModalScrollbarWidth();
+
+    // Lock background scroll when a modal opens.
+    //
+    // The scrollbar presence is captured BEFORE the modal DOM is teleported
+    // into <body> (see `measurePreModalScrollbarWidth`), so we can decide
+    // whether to preserve the scrollbar without being fooled by the injected
+    // modal markup.
+    //
+    // When a scrollbar was present, we keep it visible on <html> via
+    // `overflow-y: scroll`. This preserves the initial containing block (ICB)
+    // width — fixed-positioned elements such as banners, sidebars, top bars
+    // and the modal itself are sized against the ICB, so keeping the
+    // scrollbar reserved prevents them from shifting horizontally when the
+    // modal opens.
+    //
+    // When no scrollbar existed, we leave <html> alone so no scrollbar is
+    // forced into view.
     Alpine.effect(() => {
-        if (Alpine.store('app').modalOpen) {
-            const hasScrollbar = document.body.scrollHeight > window.innerHeight;
-            if (hasScrollbar) {
-                const scrollY = window.scrollY;
-                document.body.dataset.scrollY = scrollY;
-                document.body.style.position = 'fixed';
-                document.body.style.top = `-${scrollY}px`;
-                document.body.style.width = '100%';
-                document.body.style.overflowY = 'scroll';
-            } else {
-                // Reset paddingRight added by Alpine's dialog disableScrolling()
-                requestAnimationFrame(() => {
-                    document.documentElement.style.paddingRight = '';
-                });
-            }
+        if (!Alpine.store('app').modalOpen) {
+            return;
         }
+
+        const scrollY = window.scrollY;
+        document.body.dataset.scrollY = scrollY;
+
+        if (preModalScrollbarWidth > 0) {
+            document.documentElement.style.overflowY = 'scroll';
+        }
+
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = '100%';
     });
+});
+
+// Keep the measurement fresh as the viewport/content changes between modal opens.
+window.addEventListener('resize', measurePreModalScrollbarWidth);
+window.addEventListener('scroll', measurePreModalScrollbarWidth, { passive: true });
+document.addEventListener('DOMContentLoaded', measurePreModalScrollbarWidth);
+
+// Capture scrollbar state right before a Livewire request, which is the last
+// moment we can reliably read it before a server-rendered modal is injected.
+document.addEventListener('livewire:init', () => {
+    if (typeof Livewire?.hook === 'function') {
+        Livewire.hook('request', () => {
+            measurePreModalScrollbarWidth();
+        });
+    }
 });
 
 function showModalLoading() {
@@ -76,7 +123,10 @@ document.addEventListener('modal-closed-global', () => {
     document.body.style.position = '';
     document.body.style.top = '';
     document.body.style.width = '';
+    document.body.style.paddingRight = '';
     document.body.style.overflowY = '';
+    document.documentElement.style.overflowY = '';
+    document.documentElement.style.paddingRight = '';
     window.scrollTo(0, parseInt(scrollY));
     hideModalLoading();
 });
