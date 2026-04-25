@@ -2,6 +2,7 @@
 
 **A modal system for Laravel Livewire 4.**<br/>
 Open any Livewire component in a modal — no traits, no modifications to your livewire component code.
+Modals can also be stacked — open another modal from inside an open one with the same `$modal()` call.
 
 ## Installation
 
@@ -66,6 +67,28 @@ new class extends Component
     {{$name}} {{-- Will display John Doe --}}
 </div>
 ```
+
+## Stacked Modals
+
+![Stacked modals example](screenshots/stacked-modals.jpg)
+
+`$modal(...)` works the same way from inside an already-open modal — there is no extra API and no nesting limit. Calling it pushes a new modal onto the stack on top of the current one.
+
+```html
+{{-- Inside a Livewire component that is itself open in a modal --}}
+<button type="button"
+    @click="$modal('another-livewire-component', { count: '{{ $count }}' })">
+    Open another modal on top
+</button>
+```
+
+Closing follows LIFO order:
+
+- **ESC** closes only the topmost modal.
+- Dispatch `closeTopModal` from PHP/Livewire to close the top modal programmatically.
+- Dispatch `closeAllModals` to clear the entire stack at once.
+
+Layering is handled automatically: only the top modal is interactive; modals beneath it are dimmed and slightly scaled down — no styling work required on your end.
 
 ## Publishing the Example
 
