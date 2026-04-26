@@ -4,7 +4,7 @@
 Open any Livewire component in a modal — no traits, no modifications to your livewire component code.
 Modals can also be stacked — open another modal from inside an open one with the same `$modal()` call.
 
-![Stacked modals example](screenshots/stacked-modals.jpg)
+![Stacked modals example](screenshots/animated.gif)
 
 ## Installation
 
