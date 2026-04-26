@@ -1,5 +1,5 @@
 <?php
 
 return [
-    'position' => 'right', // 'center' | 'right'
+    'position' => 'center', // 'center' | 'right'
 ];
