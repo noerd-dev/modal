@@ -1,7 +1,8 @@
 # noerd/modal
 
-**A modal system for Laravel Livewire 4.**<br/>
+**A stacked modal system for Laravel Livewire 4.**<br/>
 Open any Livewire component in a modal — no traits, no modifications to your livewire component code.
+
 Modals can also be stacked — open another modal from inside an open one with the same `$modal()` call.
 
 ![Stacked modals example](screenshots/animated.gif)
