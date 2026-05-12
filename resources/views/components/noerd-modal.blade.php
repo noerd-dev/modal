@@ -39,6 +39,7 @@ new #[Isolate] class extends Component {
 
         $modal['iteration'] = $iteration;
         $modal['urlParameters'] = $this->resolveUrlParameters($modalComponent);
+        $modal['forceFullscreen'] = $this->resolveForceFullscreen($modalComponent);
         $this->modals[$modal['key']] = $modal;
 
         $this->markTopModal();
@@ -137,6 +138,16 @@ new #[Isolate] class extends Component {
         $this->dispatch('modal-closed-global');
     }
 
+    private function resolveForceFullscreen(string $componentName): bool
+    {
+        try {
+            $component = Livewire::new($componentName);
+            return (bool) ($component->forceModalFullscreen ?? false);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     private function resolveUrlParameters(string $componentName): array
     {
         try {
@@ -206,6 +217,7 @@ new #[Isolate] class extends Component {
                                                   :modalKey="$modal['key']"
                                                   :modal="$modal['componentName']"
                                                   :position="$modal['position']"
+                                                  :forceFullscreen="$modal['forceFullscreen'] ?? false"
                                                   :topModal="$modal['topModal']">
                                 <div wire:ignore>
                                     @livewire($modal['componentName'], $modal['arguments'], key($modal['key']))
