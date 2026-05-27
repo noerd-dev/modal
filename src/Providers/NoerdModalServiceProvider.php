@@ -18,6 +18,9 @@ class NoerdModalServiceProvider extends ServiceProvider
         Livewire::addNamespace('noerd-modal', viewPath: __DIR__ . '/../../resources/views/components');
         Livewire::addLocation(viewPath: __DIR__ . '/../../resources/views/components');
 
+        $this->loadRoutesFrom(__DIR__ . '/../../routes/noerd-modal-routes.php');
+        $this->loadJsonTranslationsFrom(__DIR__ . '/../../resources/lang');
+
         // Publish config
         $this->publishes([
             __DIR__ . '/../../config/noerd-modal.php' => config_path('noerd-modal.php'),

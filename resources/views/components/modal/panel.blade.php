@@ -4,6 +4,33 @@
     $isRight = ($position ?? 'center') === 'right';
     $topModal = $topModal ?? true;
     $isStacked = ($iteration ?? 1) > 1;
+    $depth = $depth ?? 0;
+    $modelId = $modelId ?? null;
+    $disableOpenAsPage = $disableOpenAsPage ?? false;
+
+    $detailUrl = null;
+    if (isset($modal) && ! $disableOpenAsPage && config('noerd-modal.open_as_page', true)) {
+        foreach (\Illuminate\Support\Facades\Route::getRoutes() as $registeredRoute) {
+            if (($registeredRoute->getAction()['livewire_component'] ?? null) === $modal) {
+                try {
+                    $detailUrl = $modelId
+                        ? route($registeredRoute->getName(), ['modelId' => $modelId])
+                        : route($registeredRoute->getName());
+                } catch (\Throwable) {
+                    $detailUrl = null;
+                }
+                break;
+            }
+        }
+
+        if (! $detailUrl) {
+            $params = ['component' => $modal];
+            if ($modelId) {
+                $params['modelId'] = $modelId;
+            }
+            $detailUrl = route('modal.page', $params);
+        }
+    }
 @endphp
 <div
     x-noerd::dialog
@@ -40,10 +67,14 @@
              x-transition:leave-end="translate-x-full"
         >
             <div x-trap="open" @class([
-                'bg-white ml-auto shadow-sm relative h-[100dvh] transition-transform duration-200 ease-out origin-right',
+                'bg-white ml-auto shadow-sm relative h-[100dvh] transition-all duration-200 ease-out origin-right',
                 'max-w-full' => $isFullscreen,
                 'max-w-7xl' => !$isFullscreen,
-                'scale-[0.97]' => !$topModal,
+                'scale-[0.97]' => $depth === 1,
+                'scale-[0.94]' => $depth === 2,
+                'scale-[0.91]' => $depth === 3,
+                'scale-[0.88]' => $depth === 4,
+                'scale-[0.85]' => $depth >= 5,
             ]) x-data="{ isRight: true }">
 
                 @if(!$topModal)
@@ -68,10 +99,20 @@
                     </button>
                 @endif
 
+                @if($detailUrl)
+                    <!-- Open as Page Button (desktop only) -->
+                    <a href="{{ $detailUrl }}"
+                       class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-[6.5rem] border! border-gray-300!">
+                        <span class="sr-only">{{ __('Open as page') }}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                        </svg>
+                    </a>
+                @endif
+
                 <!-- Close Button -->
                 <button type="button"
-                        @click="show = !show"
-                        wire:click.prevent="$dispatch('closeTopModal')"
+                        @click="open = false; setTimeout(() => Livewire.dispatch('closeTopModal'), 200)"
                         class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 hover:bg-gray-100 absolute! right-0 top-4 mt-2 mr-6 border! border-gray-300! text-gray-600!">
                     <span class="sr-only">Close modal</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -102,11 +143,15 @@
              x-transition:leave-end="translate-y-full"
         >
             <div x-trap="open" @class([
-                'bg-white mx-auto shadow-sm relative transition-transform duration-200 ease-out',
+                'bg-white mx-auto shadow-sm relative transition-all duration-200 ease-out',
                 'max-w-full h-[100dvh] rounded-none',
                 'sm:max-w-full sm:h-[calc(100dvh-3.5rem)] sm:mt-14 sm:rounded-none' => $isFullscreen,
                 'sm:max-w-7xl sm:h-full sm:max-h-[calc(100vh-112px)] sm:rounded' => !$isFullscreen,
-                'scale-[0.97]' => !$topModal,
+                'scale-[0.97]' => $depth === 1,
+                'scale-[0.94]' => $depth === 2,
+                'scale-[0.91]' => $depth === 3,
+                'scale-[0.88]' => $depth === 4,
+                'scale-[0.85]' => $depth >= 5,
             ])>
 
                 @if(!$topModal)
@@ -131,8 +176,19 @@
                     </button>
                 @endif
 
+                @if($detailUrl)
+                    <!-- Open as Page Button (desktop only) -->
+                    <a href="{{ $detailUrl }}"
+                       class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-[6.5rem] border! border-gray-300!">
+                        <span class="sr-only">{{ __('Open as page') }}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                        </svg>
+                    </a>
+                @endif
+
                 <!-- Close Button -->
-                <button @click="show = !show" wire:click.prevent="$dispatch('closeTopModal')" type="button"
+                <button @click="open = false; setTimeout(() => Livewire.dispatch('closeTopModal'), 200)" type="button"
                         class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 hover:bg-gray-100 absolute! right-0 top-4 mt-2 mr-6 border! border-gray-300! text-gray-600!">
                     <span class="sr-only">Close modal</span>
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">

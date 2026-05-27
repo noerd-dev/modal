@@ -16,11 +16,15 @@ new #[Isolate] class extends Component {
     #[On('noerdModal')]
     public function bootModal(
         string  $modalComponent,
-        array   $arguments = [],
+        mixed   $arguments = [],
         ?string $source = null,
         ?string $position = null,
     ): void
     {
+        if (! is_array($arguments)) {
+            $arguments = ['modelId' => $arguments];
+        }
+
         $modal = [];
         $modal['componentName'] = $modalComponent;
         $modal['arguments'] = $arguments;
@@ -40,6 +44,7 @@ new #[Isolate] class extends Component {
         $modal['iteration'] = $iteration;
         $modal['urlParameters'] = $this->resolveUrlParameters($modalComponent);
         $modal['forceFullscreen'] = $this->resolveForceFullscreen($modalComponent);
+        $modal['disableOpenAsPage'] = $this->resolveDisableOpenAsPage($modalComponent);
         $this->modals[$modal['key']] = $modal;
 
         $this->markTopModal();
@@ -71,20 +76,23 @@ new #[Isolate] class extends Component {
 
     private function markTopModal(): void
     {
+        $visibleKeys = [];
         foreach ($this->modals as $key => $modal) {
             $this->modals[$key]['topModal'] = false;
+            $this->modals[$key]['depth'] = 0;
+            if ($modal['show'] === true) {
+                $visibleKeys[] = $key;
+            }
         }
-        $lastKey = null;
-        if (count($this->modals) > 0) {
-            foreach ($this->modals as $key => $modal) {
-                if ($modal['show'] === true) {
-                    $lastKey = $key;
-                }
-            }
 
-            if ($lastKey) {
-                $this->modals[$lastKey]['topModal'] = true;
-            }
+        $total = count($visibleKeys);
+        foreach ($visibleKeys as $position => $key) {
+            $this->modals[$key]['depth'] = $total - 1 - $position;
+        }
+
+        if ($total > 0) {
+            $topKey = $visibleKeys[$total - 1];
+            $this->modals[$topKey]['topModal'] = true;
         }
     }
 
@@ -143,6 +151,16 @@ new #[Isolate] class extends Component {
         try {
             $component = Livewire::new($componentName);
             return (bool) ($component->forceModalFullscreen ?? false);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function resolveDisableOpenAsPage(string $componentName): bool
+    {
+        try {
+            $component = Livewire::new($componentName);
+            return (bool) ($component->disableOpenAsPage ?? false);
         } catch (\Throwable) {
             return false;
         }
@@ -213,11 +231,14 @@ new #[Isolate] class extends Component {
                         <x-noerd::modal>
                             <x-noerd::modal.panel :ml="$modal['arguments']['ml'] ?? ''"
                                                   :iteration="$modal['iteration']"
+                                                  :depth="$modal['depth'] ?? 0"
                                                   :source="$modal['source']"
                                                   :modalKey="$modal['key']"
                                                   :modal="$modal['componentName']"
+                                                  :modelId="$modal['arguments']['modelId'] ?? null"
                                                   :position="$modal['position']"
                                                   :forceFullscreen="$modal['forceFullscreen'] ?? false"
+                                                  :disableOpenAsPage="$modal['disableOpenAsPage'] ?? false"
                                                   :topModal="$modal['topModal']">
                                 <div wire:ignore>
                                     @livewire($modal['componentName'], $modal['arguments'], key($modal['key']))
