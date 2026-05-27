@@ -135,9 +135,35 @@ document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && Alpine.store('app').modalOpen) {
         event.preventDefault();
         event.stopPropagation();
-        Livewire.dispatch('closeTopModal');
+        closeTopModalWithTransition();
     }
 });
+
+// Mirror the X-button close behaviour: trigger the leave transition on the
+// topmost modal panel first, then dispatch closeTopModal after the animation
+// has had time to play.
+function closeTopModalWithTransition() {
+    const panels = document.querySelectorAll('[modal]');
+    const topPanel = panels[panels.length - 1];
+
+    if (topPanel) {
+        let el = topPanel;
+        while (el && el !== document.body) {
+            if (el._x_dataStack) {
+                for (const scope of el._x_dataStack) {
+                    if ('open' in scope) {
+                        scope.open = false;
+                        setTimeout(() => Livewire.dispatch('closeTopModal'), 200);
+                        return;
+                    }
+                }
+            }
+            el = el.parentElement;
+        }
+    }
+
+    Livewire.dispatch('closeTopModal');
+}
 
 // Listen for clear-modal-url-params event from close button
 document.addEventListener('clear-modal-url-params', (event) => {
