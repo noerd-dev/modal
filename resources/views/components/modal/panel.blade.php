@@ -31,6 +31,14 @@
             $detailUrl = route('modal.page', $params);
         }
     }
+
+    $modalControlsClass = 'mr-20';
+    if (! $forceFullscreen) {
+        $modalControlsClass = 'mr-30';
+    }
+    if ($detailUrl) {
+        $modalControlsClass = 'mr-40';
+    }
 @endphp
 <div
     x-noerd::dialog
@@ -120,7 +128,7 @@
                     </svg>
                 </button>
 
-                <div x-data="{ isModal: true, isRight: true }" class="p-6 pt-12 h-full overflow-y-auto"
+                <div x-data="{ isModal: true, isRight: true, modalControlsClass: '{{ $modalControlsClass }}' }" class="p-6 pt-12 h-full overflow-y-auto"
                      x-effect="if(open) setTimeout(() => { const el = $el.querySelector('input:not([type=hidden]):not([disabled]), textarea:not([disabled]), select:not([disabled])'); if(el) el.focus(); }, 150)">
                     {{ $slot }}
                 </div>
@@ -198,7 +206,7 @@
                     </svg>
                 </button>
 
-                <div x-data="{ isModal: true, isRight: false }" class="p-6 pt-12"
+                <div x-data="{ isModal: true, isRight: false, modalControlsClass: '{{ $modalControlsClass }}' }" class="p-6 pt-12"
                      x-effect="if(open) setTimeout(() => { const el = $el.querySelector('input:not([type=hidden]):not([disabled]), textarea:not([disabled]), select:not([disabled])'); if(el) el.focus(); }, 150)">
                     {{ $slot }}
                 </div>
