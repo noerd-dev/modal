@@ -78,11 +78,6 @@
                 'bg-white ml-auto shadow-sm relative h-[100dvh] transition-all duration-200 ease-out origin-right',
                 'max-w-full' => $isFullscreen,
                 'max-w-7xl' => !$isFullscreen,
-                'scale-[0.97]' => $depth === 1,
-                'scale-[0.94]' => $depth === 2,
-                'scale-[0.91]' => $depth === 3,
-                'scale-[0.88]' => $depth === 4,
-                'scale-[0.85]' => $depth >= 5,
             ]) x-data="{ isRight: true }">
 
                 @if(!$topModal)
