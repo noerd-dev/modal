@@ -17,10 +17,11 @@ function measurePreModalScrollbarWidth() {
 document.addEventListener('alpine:init', () => {
     // Modal magic
     Alpine.magic('modal', () => {
-        return (component, args = {}, source = null, position = null) => {
+        return (component, args = {}, source = null, position = null, size = null) => {
             const params = { modalComponent: component, arguments: args };
             if (source) params.source = source;
             if (position) params.position = position;
+            if (size) params.size = size;
             measurePreModalScrollbarWidth();
             showModalLoading();
             Livewire.dispatch('noerdModal', params);

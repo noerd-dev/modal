@@ -8,8 +8,11 @@
     $modelId = $modelId ?? null;
     $disableOpenAsPage = $disableOpenAsPage ?? false;
 
+    $size = $size ?? 'default';
+    $isNarrow = $size === 'narrow';
+
     $detailUrl = null;
-    if (isset($modal) && ! $disableOpenAsPage && config('noerd-modal.open_as_page', true)) {
+    if (isset($modal) && ! $disableOpenAsPage && ! $isNarrow && config('noerd-modal.open_as_page', true)) {
         foreach (\Illuminate\Support\Facades\Route::getRoutes() as $registeredRoute) {
             if (($registeredRoute->getAction()['livewire_component'] ?? null) === $modal) {
                 try {
@@ -38,6 +41,9 @@
     }
     if ($detailUrl) {
         $modalControlsClass = 'mr-40';
+    }
+    if ($isNarrow) {
+        $modalControlsClass = 'mr-12';
     }
 @endphp
 <div
@@ -77,18 +83,19 @@
             <div x-trap="open" @class([
                 'bg-white ml-auto shadow-sm relative h-[100dvh] transition-all duration-200 ease-out origin-right',
                 'max-w-full' => $isFullscreen,
-                'max-w-7xl' => !$isFullscreen,
+                'max-w-7xl' => !$isFullscreen && !$isNarrow,
+                'max-w-lg' => !$isFullscreen && $isNarrow,
             ]) x-data="{ isRight: true }">
 
                 @if(!$topModal)
                     <div class="absolute inset-0 bg-gray-800/20 z-[51] pointer-events-none"></div>
                 @endif
 
-                @if(!$forceFullscreen)
+                @if(!$forceFullscreen && !$isNarrow)
                     <!-- Fullscreen Toggle Button (desktop only) -->
                     <button type="button"
                             wire:click.prevent="toggleFullscreen"
-                            class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-16 border! border-gray-300!">
+                            class="my-auto inline-flex cursor-pointer items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-16 border! border-gray-300!">
                         <span class="sr-only">Toggle fullscreen</span>
                         @if($isFullscreen)
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -116,7 +123,7 @@
                 <!-- Close Button -->
                 <button type="button"
                         @click="open = false; setTimeout(() => Livewire.dispatch('closeTopModal'), 200)"
-                        class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 hover:bg-gray-100 absolute! right-0 top-4 mt-2 mr-6 border! border-gray-300! text-gray-600!">
+                        class="my-auto inline-flex cursor-pointer items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 hover:bg-gray-100 absolute! right-0 top-4 mt-2 mr-6 border! border-gray-300! text-gray-600!">
                     <span class="sr-only">Close modal</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -149,7 +156,8 @@
                 'bg-white mx-auto shadow-sm relative transition-all duration-200 ease-out',
                 'max-w-full h-[100dvh] rounded-none',
                 'sm:max-w-full sm:h-[calc(100dvh-3.5rem)] sm:mt-14 sm:rounded-none' => $isFullscreen,
-                'sm:max-w-7xl sm:h-full sm:max-h-[calc(100vh-112px)] sm:rounded' => !$isFullscreen,
+                'sm:max-w-7xl sm:h-full sm:max-h-[calc(100vh-112px)] sm:rounded' => !$isFullscreen && !$isNarrow,
+                'sm:max-w-lg sm:h-full sm:max-h-[calc(100vh-112px)] sm:rounded' => !$isFullscreen && $isNarrow,
                 'scale-[0.97]' => $depth === 1,
                 'scale-[0.94]' => $depth === 2,
                 'scale-[0.91]' => $depth === 3,
@@ -161,11 +169,11 @@
                     <div class="absolute inset-0 bg-gray-800/20 z-[51] pointer-events-none"></div>
                 @endif
 
-                @if(!$forceFullscreen)
+                @if(!$forceFullscreen && !$isNarrow)
                     <!-- Fullscreen Toggle Button (desktop only) -->
                     <button type="button"
                             wire:click.prevent="toggleFullscreen"
-                            class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-16 border! border-gray-300!">
+                            class="my-auto inline-flex cursor-pointer items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-16 border! border-gray-300!">
                         <span class="sr-only">Toggle fullscreen</span>
                         @if($isFullscreen)
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -192,7 +200,7 @@
 
                 <!-- Close Button -->
                 <button @click="open = false; setTimeout(() => Livewire.dispatch('closeTopModal'), 200)" type="button"
-                        class="my-auto inline-flex items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 hover:bg-gray-100 absolute! right-0 top-4 mt-2 mr-6 border! border-gray-300! text-gray-600!">
+                        class="my-auto inline-flex cursor-pointer items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 hover:bg-gray-100 absolute! right-0 top-4 mt-2 mr-6 border! border-gray-300! text-gray-600!">
                     <span class="sr-only">Close modal</span>
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd"

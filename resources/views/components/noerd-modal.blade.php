@@ -19,10 +19,18 @@ new #[Isolate] class extends Component {
         mixed   $arguments = [],
         ?string $source = null,
         ?string $position = null,
+        ?string $size = null,
     ): void
     {
         if (! is_array($arguments)) {
             $arguments = ['modelId' => $arguments];
+        }
+
+        // Detail components that opt into quick-create for new records (via a
+        // `public bool $quickCreateOnNew = true;` property) open in the narrow panel
+        // when no record is being edited — no per-call quickCreate flag required.
+        if (empty($arguments['modelId']) && $this->resolveQuickCreateOnNew($modalComponent)) {
+            $size ??= 'narrow';
         }
 
         $modal = [];
@@ -32,6 +40,7 @@ new #[Isolate] class extends Component {
         $modal['topModal'] = false;
         $modal['source'] = $source;
         $modal['position'] = $position ?? config('noerd-modal.position', 'center');
+        $modal['size'] = $size ?? 'default';
         $modal['key'] = md5(serialize($arguments) . microtime());
 
         $iteration = 1;
@@ -166,6 +175,23 @@ new #[Isolate] class extends Component {
         }
     }
 
+    private function resolveQuickCreateOnNew(string $componentName): bool
+    {
+        try {
+            if (Livewire::new($componentName)->quickCreateOnNew ?? false) {
+                return true;
+            }
+        } catch (\Throwable) {
+            // Fall through to the YAML opt-in below.
+        }
+
+        try {
+            return (bool) (\Noerd\Helpers\StaticConfigHelper::getComponentFields($componentName)['quickCreate'] ?? false);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     private function resolveUrlParameters(string $componentName): array
     {
         try {
@@ -237,6 +263,7 @@ new #[Isolate] class extends Component {
                                                   :modal="$modal['componentName']"
                                                   :modelId="$modal['arguments']['modelId'] ?? null"
                                                   :position="$modal['position']"
+                                                  :size="$modal['size'] ?? 'default'"
                                                   :forceFullscreen="$modal['forceFullscreen'] ?? false"
                                                   :disableOpenAsPage="$modal['disableOpenAsPage'] ?? false"
                                                   :topModal="$modal['topModal']">
