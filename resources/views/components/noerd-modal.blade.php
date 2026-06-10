@@ -59,6 +59,24 @@ new #[Isolate] class extends Component {
         $this->markTopModal();
     }
 
+    /**
+     * Resize the current top modal panel in place (e.g. widen a narrow
+     * quick-create modal to the full detail width once the record is created).
+     * The modal is neither closed nor reopened — only the panel chrome re-renders,
+     * so the embedded component (kept behind `wire:ignore`) is preserved and the
+     * width change animates via the panel's CSS transition.
+     */
+    #[On('resizeTopModal')]
+    public function resizeTopModal(string $size = 'default'): void
+    {
+        foreach ($this->modals as $key => $modal) {
+            if (($modal['topModal'] ?? false) && ($modal['show'] ?? false)) {
+                $this->modals[$key]['size'] = $size;
+                break;
+            }
+        }
+    }
+
     public function closeModal(string $componentName, ?string $source, ?string $modalKey): void
     {
         $modals = $this->modals;

@@ -64,6 +64,47 @@ describe('Modal Manager', function (): void {
         expect($lastModal['topModal'])->toBeTrue();
     });
 
+    it('resizes the top modal in place without closing or reopening it', function (): void {
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 1], size: 'narrow');
+
+        $originalKey = array_keys($component->get('modals'))[0];
+        expect($component->get('modals')[$originalKey]['size'])->toBe('narrow');
+
+        $component->dispatch('resizeTopModal', size: 'default')
+            ->assertNotDispatched('modal-closed-global');
+
+        $modals = $component->get('modals');
+
+        // Same modal, same key — only the size changed.
+        expect($modals)->toHaveCount(1);
+        expect(array_keys($modals)[0])->toBe($originalKey);
+        expect($modals[$originalKey]['size'])->toBe('default');
+        expect($modals[$originalKey]['topModal'])->toBeTrue();
+    });
+
+    it('only resizes the top modal of a stack', function (): void {
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 1], size: 'narrow')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 2], size: 'narrow');
+
+        $keys = array_keys($component->get('modals'));
+        [$bottomKey, $topKey] = $keys;
+
+        $component->dispatch('resizeTopModal', size: 'default');
+
+        $modals = $component->get('modals');
+
+        expect($modals[$topKey]['size'])->toBe('default');
+        expect($modals[$bottomKey]['size'])->toBe('narrow');
+    });
+
+    it('does nothing when resizeTopModal is dispatched with no modals open', function (): void {
+        Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('resizeTopModal', size: 'default')
+            ->assertNotDispatched('modal-closed-global');
+    });
+
     it('closes a modal when closeModal event is dispatched', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
             ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: []);
