@@ -6,13 +6,15 @@
     $isStacked = ($iteration ?? 1) > 1;
     $depth = $depth ?? 0;
     $modelId = $modelId ?? null;
-    $disableOpenAsPage = $disableOpenAsPage ?? false;
+    // Opt-in: the button only renders when the component declares
+    // `public bool $openAsPage = true;` — by default a modal has no page twin.
+    $openAsPage = $openAsPage ?? false;
 
     $size = $size ?? 'default';
     $isNarrow = $size === 'narrow';
 
     $detailUrl = null;
-    if (isset($modal) && ! $disableOpenAsPage && ! $isNarrow && config('noerd-modal.open_as_page', true)) {
+    if (isset($modal) && $openAsPage && ! $isNarrow) {
         foreach (\Illuminate\Support\Facades\Route::getRoutes() as $registeredRoute) {
             if (($registeredRoute->getAction()['livewire_component'] ?? null) === $modal) {
                 try {
