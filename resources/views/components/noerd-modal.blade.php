@@ -209,7 +209,7 @@ new #[Isolate] class extends Component {
         }
 
         try {
-            return (bool) (\Noerd\Helpers\StaticConfigHelper::getComponentFields($componentName)['quickCreate'] ?? false);
+            return (bool) (\Noerd\Helpers\StaticConfigHelper::tryGetComponentFields($componentName)['quickCreate'] ?? false);
         } catch (\Throwable) {
             return false;
         }
