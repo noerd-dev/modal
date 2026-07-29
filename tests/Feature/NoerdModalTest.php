@@ -321,7 +321,7 @@ function renderModalPanel(string $component = 'noerd-modal::example.noerd-exampl
     return html_entity_decode(
         Livewire::test('noerd-modal::noerd-modal')
             ->dispatch('noerdModal', modalComponent: $component, arguments: [])
-            ->html()
+            ->html(),
     );
 }
 

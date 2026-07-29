@@ -216,7 +216,17 @@ new #[Isolate] class extends Component {
         }
 
         try {
-            return (bool) (\Noerd\Helpers\StaticConfigHelper::tryGetComponentFields($componentName)['quickCreate'] ?? false);
+            if (\Noerd\Helpers\StaticConfigHelper::tryGetComponentFields($componentName)['quickCreate'] ?? false) {
+                return true;
+            }
+        } catch (\Throwable) {
+            // Fall through to the page YAML probe below.
+        }
+
+        try {
+            // `*-page` components carry the opt-in in their OPTIONAL page YAML
+            // (pages/{name}.yml) instead of a detail YAML.
+            return (bool) (\Noerd\Helpers\StaticConfigHelper::getPageFields($componentName)['quickCreate'] ?? false);
         } catch (\Throwable) {
             return false;
         }
