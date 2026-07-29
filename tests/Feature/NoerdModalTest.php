@@ -287,7 +287,53 @@ describe('Modal Manager', function (): void {
         $component->call('toggleFullscreen');
         expect(session('modal_fullscreen'))->toBeNull();
     });
+
+    it('applies the fullscreen state client-side instead of re-rendering the panel', function (): void {
+        $html = renderModalPanel();
+
+        expect($html)->toContain('$store.app.modalFullscreen = false');
+        expect($html)->toContain("\$store.app.modalFullscreen ? 'sm:max-w-full");
+        expect($html)->not->toContain('wire:click.prevent="toggleFullscreen"');
+    });
+
+    it('renders identical panel geometry regardless of the fullscreen session state', function (): void {
+        $default = panelGeometryBindings(renderModalPanel());
+
+        session(['modal_fullscreen' => true]);
+        $fullscreen = renderModalPanel();
+
+        // Only the store seed differs — the geometry itself is no longer baked
+        // into the server-rendered markup, so nothing can jump on toggle.
+        expect($fullscreen)->toContain('$store.app.modalFullscreen = true');
+        expect(panelGeometryBindings($fullscreen))->toBe($default)->not->toBeEmpty();
+    });
+
+    it('never reads the shared preference for a forced fullscreen modal', function (): void {
+        $html = renderModalPanel('noerd-modal::example.noerd-example-fullscreen-component');
+
+        expect($html)->toContain("true ? 'sm:max-w-full");
+        expect($html)->not->toContain("\$store.app.modalFullscreen ? 'sm:max-w-full");
+    });
 });
+
+function renderModalPanel(string $component = 'noerd-modal::example.noerd-example-component'): string
+{
+    return html_entity_decode(
+        Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: $component, arguments: [])
+            ->html()
+    );
+}
+
+/**
+ * @return list<string>
+ */
+function panelGeometryBindings(string $html): array
+{
+    preg_match_all('/:class="([^"]*max-w[^"]*)"/', $html, $matches);
+
+    return $matches[1];
+}
 
 describe('Example Component', function (): void {
     it('initializes count to 1', function (): void {

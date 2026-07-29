@@ -1,6 +1,5 @@
 @php
     $forceFullscreen = $forceFullscreen ?? false;
-    $isFullscreen = $forceFullscreen || session('modal_fullscreen', false);
     $isRight = ($position ?? 'center') === 'right';
     $topModal = $topModal ?? true;
     $isStacked = ($iteration ?? 1) > 1;
@@ -47,11 +46,28 @@
     if ($isNarrow) {
         $modalControlsClass = 'mr-12';
     }
+
+    // The fullscreen state lives in the Alpine store so the toggle applies
+    // instantly (no server round-trip) and only animatable properties change.
+    // The store is seeded synchronously from the session on open, so the first
+    // paint already matches; the session merely persists the preference.
+    // A `forceModalFullscreen` panel is always fullscreen and therefore never
+    // reads (or writes) the shared preference.
+    $fullscreenExpression = $forceFullscreen ? 'true' : '$store.app.modalFullscreen';
+
+    $panelWidthClasses = $isNarrow
+        ? 'sm:max-w-lg sm:max-h-[calc(100dvh-7rem)] sm:rounded'
+        : 'sm:max-w-7xl sm:max-h-[calc(100dvh-7rem)] sm:rounded';
+    $panelFullscreenClasses = 'sm:max-w-full sm:max-h-[calc(100dvh-3.5rem)] sm:rounded-none';
+    $panelClassExpression = "{$fullscreenExpression} ? '{$panelFullscreenClasses}' : '{$panelWidthClasses}'";
+
+    $rightWidthClasses = $isNarrow ? 'max-w-lg' : 'max-w-7xl';
+    $rightClassExpression = "{$fullscreenExpression} ? 'max-w-full' : '{$rightWidthClasses}'";
 @endphp
 <div
     x-noerd::dialog
     x-show="open"
-    x-init="setTimeout(() => { open = true; $store.app.modalFullscreen = {{ $isFullscreen ? 'true' : 'false' }} }, 0)"
+    x-init="$store.app.modalFullscreen = {{ session('modal_fullscreen', false) ? 'true' : 'false' }}; setTimeout(() => open = true, 0)"
     x-transition:enter="transition ease-out duration-300"
     x-transition:enter-start="opacity-0"
     x-transition:enter-end="opacity-100"
@@ -82,12 +98,10 @@
              x-transition:leave-start="translate-x-0"
              x-transition:leave-end="translate-x-full"
         >
-            <div x-trap="open" @class([
-                'bg-white ml-auto shadow-sm relative h-[100dvh] transition-all duration-200 ease-out origin-right',
-                'max-w-full' => $isFullscreen,
-                'max-w-7xl' => !$isFullscreen && !$isNarrow,
-                'max-w-lg' => !$isFullscreen && $isNarrow,
-            ]) x-data="{ isRight: true }">
+            <div x-trap="open"
+                 class="bg-white ml-auto shadow-sm relative h-[100dvh] max-w-full transition-all duration-200 ease-out origin-right"
+                 :class="{{ $rightClassExpression }}"
+                 x-data="{ isRight: true }">
 
                 @if(!$topModal)
                     <div class="absolute inset-0 bg-gray-800/20 z-[51] pointer-events-none"></div>
@@ -96,18 +110,15 @@
                 @if(!$forceFullscreen && !$isNarrow)
                     <!-- Fullscreen Toggle Button (desktop only) -->
                     <button type="button"
-                            wire:click.prevent="toggleFullscreen"
+                            @click.prevent="$store.app.modalFullscreen = ! $store.app.modalFullscreen; $wire.toggleFullscreen()"
                             class="my-auto inline-flex cursor-pointer items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-16 border! border-gray-300!">
                         <span class="sr-only">Toggle fullscreen</span>
-                        @if($isFullscreen)
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
-                            </svg>
-                        @else
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25-5.25v4.5m0-4.5h-4.5m4.5 0L15 9m5.25 11.25v-4.5m0 4.5h-4.5m4.5 0L15 15M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15" />
-                            </svg>
-                        @endif
+                        <svg x-show="$store.app.modalFullscreen" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
+                        </svg>
+                        <svg x-show="! $store.app.modalFullscreen" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25-5.25v4.5m0-4.5h-4.5m4.5 0L15 9m5.25 11.25v-4.5m0 4.5h-4.5m4.5 0L15 15M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15" />
+                        </svg>
                     </button>
                 @endif
 
@@ -132,7 +143,7 @@
                     </svg>
                 </button>
 
-                <div x-data="{ isModal: true, isRight: true, modalControlsClass: '{{ $modalControlsClass }}' }" class="p-6 pt-12 h-full overflow-y-auto"
+                <div x-data="{ isModal: true, isRight: true, modalControlsClass: '{{ $modalControlsClass }}', get modalFullscreen() { return {{ $fullscreenExpression }} } }" class="p-6 pt-12 h-full overflow-y-auto"
                      x-effect="if(open) setTimeout(() => { const el = $el.querySelector('input:not([type=hidden]):not([disabled]), textarea:not([disabled]), select:not([disabled])'); if(el) el.focus(); }, 150)">
                     {{ $slot }}
                 </div>
@@ -141,12 +152,7 @@
     @else
         <!-- Panel (center position) -->
         <div x-show="open" id="modal" modal="{{$modal}}"
-             @class([
-                'relative w-full justify-center',
-                'h-[100dvh] my-0 items-start',
-                'sm:h-[100dvh] sm:items-start' => $isFullscreen,
-                'sm:h-auto sm:max-h-[100dvh] sm:py-14 sm:my-auto sm:items-center' => !$isFullscreen,
-            ])
+             class="relative w-full justify-center h-[100dvh] my-0 items-start"
              x-transition:enter="transition transform ease-out duration-100"
              x-transition:enter-start="translate-y-1/2"
              x-transition:enter-end="translate-y-0"
@@ -154,12 +160,12 @@
              x-transition:leave-start="translate-y-0"
              x-transition:leave-end="translate-y-full"
         >
-            <div x-trap="open" @class([
-                'bg-white mx-auto shadow-sm relative transition-all duration-200 ease-out',
+            <div x-trap="open"
+                 :class="{{ $panelClassExpression }}"
+                 @class([
+                'bg-white mx-auto shadow-sm relative origin-top transition-all duration-200 ease-out',
                 'max-w-full h-[100dvh] rounded-none',
-                'sm:max-w-full sm:h-[calc(100dvh-3.5rem)] sm:mt-14 sm:rounded-none' => $isFullscreen,
-                'sm:max-w-7xl sm:h-full sm:max-h-[calc(100vh-112px)] sm:rounded' => !$isFullscreen && !$isNarrow,
-                'sm:max-w-lg sm:h-full sm:max-h-[calc(100vh-112px)] sm:rounded' => !$isFullscreen && $isNarrow,
+                'sm:h-auto sm:mt-14',
                 'scale-[0.97]' => $depth === 1,
                 'scale-[0.94]' => $depth === 2,
                 'scale-[0.91]' => $depth === 3,
@@ -174,18 +180,15 @@
                 @if(!$forceFullscreen && !$isNarrow)
                     <!-- Fullscreen Toggle Button (desktop only) -->
                     <button type="button"
-                            wire:click.prevent="toggleFullscreen"
+                            @click.prevent="$store.app.modalFullscreen = ! $store.app.modalFullscreen; $wire.toggleFullscreen()"
                             class="my-auto inline-flex cursor-pointer items-center justify-center transition focus:outline-hidden focus:ring-2 focus:ring-offset-2 rounded-sm h-8 w-8 text-gray-700 hover:bg-gray-100 hidden! sm:flex! absolute! right-0 top-4 mt-2 mr-16 border! border-gray-300!">
                         <span class="sr-only">Toggle fullscreen</span>
-                        @if($isFullscreen)
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
-                            </svg>
-                        @else
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25-5.25v4.5m0-4.5h-4.5m4.5 0L15 9m5.25 11.25v-4.5m0 4.5h-4.5m4.5 0L15 15M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15" />
-                            </svg>
-                        @endif
+                        <svg x-show="$store.app.modalFullscreen" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" />
+                        </svg>
+                        <svg x-show="! $store.app.modalFullscreen" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25-5.25v4.5m0-4.5h-4.5m4.5 0L15 9m5.25 11.25v-4.5m0 4.5h-4.5m4.5 0L15 15M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15" />
+                        </svg>
                     </button>
                 @endif
 
@@ -211,7 +214,7 @@
                     </svg>
                 </button>
 
-                <div x-data="{ isModal: true, isRight: false, modalControlsClass: '{{ $modalControlsClass }}' }" class="p-6 pt-12"
+                <div x-data="{ isModal: true, isRight: false, modalControlsClass: '{{ $modalControlsClass }}', get modalFullscreen() { return {{ $fullscreenExpression }} } }" class="p-6 pt-12"
                      x-effect="if(open) setTimeout(() => { const el = $el.querySelector('input:not([type=hidden]):not([disabled]), textarea:not([disabled]), select:not([disabled])'); if(el) el.focus(); }, 150)">
                     {{ $slot }}
                 </div>

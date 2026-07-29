@@ -123,6 +123,11 @@ new #[Isolate] class extends Component {
         }
     }
 
+    /**
+     * Persist the fullscreen preference only. The panel itself is toggled
+     * client-side via the Alpine store, so re-rendering would just replay the
+     * layout change a second time after the animation has already finished.
+     */
     public function toggleFullscreen(): void
     {
         if (session('modal_fullscreen')) {
@@ -130,6 +135,8 @@ new #[Isolate] class extends Component {
         } else {
             session(['modal_fullscreen' => true]);
         }
+
+        $this->skipRender();
     }
 
     #[On('closeTopModal')]
