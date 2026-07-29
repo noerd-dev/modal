@@ -4,7 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Livewire\Mechanisms\HandleRouting\LivewirePageController;
 
-Route::middleware(['web', 'auth'])->group(function () {
+Route::middleware(['web', 'auth'])->group(function (): void {
     Route::get('/modal-page', function (Request $request) {
         $component = $request->query('component');
         abort_unless($component, 404);

@@ -278,7 +278,7 @@ new #[Isolate] class extends Component {
                 >
                     <div x-show="show">
                         <x-noerd::modal>
-                            <x-noerd::modal.panel :ml="$modal['arguments']['ml'] ?? ''"
+                            <x-noerd::modal.panel
                                                   :iteration="$modal['iteration']"
                                                   :depth="$modal['depth'] ?? 0"
                                                   :source="$modal['source']"
