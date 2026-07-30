@@ -323,6 +323,109 @@ describe('Modal Manager', function (): void {
     });
 });
 
+describe('Modal Route URL', function (): void {
+    it('stores the url on the modal and dispatches set-modal-url', function (): void {
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch(
+                'noerdModal',
+                modalComponent: 'noerd-modal::example.noerd-example-component',
+                arguments: ['modelId' => 5],
+                url: 'https://example.test/crm/account/5',
+            );
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['url'])->toBe('https://example.test/crm/account/5');
+
+        $component->assertDispatched(
+            'set-modal-url',
+            fn (string $event, array $params): bool => $params['url'] === 'https://example.test/crm/account/5'
+                && $params['clearParams'] === $modal['urlParameters'],
+        );
+    });
+
+    it('does not dispatch set-modal-url for modals without a url', function (): void {
+        Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: [])
+            ->assertNotDispatched('set-modal-url');
+    });
+
+    it('dispatches restore-modal-url when closeTopModal closes a url modal', function (): void {
+        Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch(
+                'noerdModal',
+                modalComponent: 'noerd-modal::example.noerd-example-component',
+                arguments: ['modelId' => 5],
+                url: 'https://example.test/crm/account/5',
+            )
+            ->dispatch('closeTopModal')
+            ->assertDispatched('restore-modal-url');
+    });
+
+    it('does not dispatch restore-modal-url when closing a modal without a url', function (): void {
+        Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: [])
+            ->dispatch('closeTopModal')
+            ->assertNotDispatched('restore-modal-url');
+    });
+
+    it('only restores the url once the url modal itself is closed in a stack', function (): void {
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch(
+                'noerdModal',
+                modalComponent: 'noerd-modal::example.noerd-example-component',
+                arguments: ['modelId' => 5],
+                url: 'https://example.test/crm/account/5',
+            )
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['sub' => true]);
+
+        $component->dispatch('closeTopModal')
+            ->assertNotDispatched('restore-modal-url');
+
+        $component->dispatch('closeTopModal')
+            ->assertDispatched('restore-modal-url');
+    });
+
+    it('opens a flashed modal on mount with its url', function (): void {
+        session()->flash('noerd-modal.open', [
+            'component' => 'noerd-modal::example.noerd-example-component',
+            'arguments' => ['modelId' => 7],
+            'url' => 'https://example.test/crm/account/7?modal=true',
+        ]);
+
+        $component = Livewire::test('noerd-modal::noerd-modal');
+
+        $modal = array_values($component->get('modals'))[0];
+        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['arguments'])->toBe(['modelId' => 7]);
+        expect($modal['url'])->toBe('https://example.test/crm/account/7?modal=true');
+
+        $component->assertDispatched('set-modal-url');
+    });
+
+    it('mounts without a modal when nothing was flashed', function (): void {
+        expect(Livewire::test('noerd-modal::noerd-modal')->get('modals'))->toBeEmpty();
+    });
+
+    it('dispatches restore-modal-url for every url modal on closeAllModals', function (): void {
+        Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch(
+                'noerdModal',
+                modalComponent: 'noerd-modal::example.noerd-example-component',
+                arguments: ['modelId' => 1],
+                url: 'https://example.test/crm/account/1',
+            )
+            ->dispatch(
+                'noerdModal',
+                modalComponent: 'noerd-modal::example.noerd-example-component',
+                arguments: ['modelId' => 2],
+                url: 'https://example.test/crm/account/2',
+            )
+            ->dispatch('closeAllModals')
+            ->assertDispatched('restore-modal-url');
+    });
+});
+
 function renderModalPanel(string $component = 'noerd-modal::example.noerd-example-component'): string
 {
     return html_entity_decode(

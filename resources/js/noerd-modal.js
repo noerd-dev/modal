@@ -171,6 +171,33 @@ document.addEventListener('clear-modal-url-params', (event) => {
     clearModalUrlParams(event.detail?.modal);
 });
 
+// URL stack for modals that carry a detail-route URL (detailRoute opt-in).
+// Opening such a modal rewrites the browser URL to the route via replaceState;
+// closing it restores the previous list URL (LIFO for stacked modals).
+const modalUrlStack = [];
+
+document.addEventListener('set-modal-url', (event) => {
+    const url = event.detail?.url;
+    if (!url) return;
+
+    // Defer past Livewire's microtask-batched #[Url] replaceState of the freshly
+    // mounted modal child, so we capture the commit's final URL and our write
+    // lands last.
+    setTimeout(() => {
+        const prev = new URL(window.location.href);
+        (event.detail?.clearParams || []).forEach((param) => prev.searchParams.delete(param));
+        modalUrlStack.push(prev.toString());
+        window.history.replaceState({}, '', url);
+    }, 0);
+});
+
+document.addEventListener('restore-modal-url', () => {
+    const prev = modalUrlStack.pop();
+    if (prev) {
+        window.history.replaceState({}, '', prev);
+    }
+});
+
 // Clear URL parameter for the specific modal component
 function clearModalUrlParams(paramName) {
     if (!paramName) return;

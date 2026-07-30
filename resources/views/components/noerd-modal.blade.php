@@ -13,6 +13,24 @@ new #[Isolate] class extends Component {
 
     public array $modals = [];
 
+    /**
+     * A shared detail link (?modal=true) redirects to the user's previous page
+     * and flashes the modal to open there (see NoerdPage::redirectToListModal()).
+     * The stack consumes that instruction on the redirected page load.
+     */
+    public function mount(): void
+    {
+        $flash = session('noerd-modal.open');
+
+        if (is_array($flash) && isset($flash['component'])) {
+            $this->bootModal(
+                modalComponent: $flash['component'],
+                arguments: $flash['arguments'] ?? [],
+                url: $flash['url'] ?? null,
+            );
+        }
+    }
+
     #[On('noerdModal')]
     public function bootModal(
         string  $modalComponent,
@@ -20,6 +38,7 @@ new #[Isolate] class extends Component {
         ?string $source = null,
         ?string $position = null,
         ?string $size = null,
+        ?string $url = null,
     ): void
     {
         if (! is_array($arguments)) {
@@ -53,9 +72,14 @@ new #[Isolate] class extends Component {
         $modal['iteration'] = $iteration;
         $modal['urlParameters'] = $this->resolveUrlParameters($modalComponent);
         $modal['forceFullscreen'] = $this->resolveForceFullscreen($modalComponent);
+        $modal['url'] = $url;
         $this->modals[$modal['key']] = $modal;
 
         $this->markTopModal();
+
+        if ($url !== null) {
+            $this->dispatch('set-modal-url', url: $url, clearParams: $modal['urlParameters']);
+        }
     }
 
     /**
@@ -147,6 +171,10 @@ new #[Isolate] class extends Component {
                     $this->dispatch('clear-modal-url-params', modal: $paramName);
                 }
 
+                if ($modal['url'] ?? null) {
+                    $this->dispatch('restore-modal-url');
+                }
+
                 // Close the modal
                 $this->closeModal($modal['componentName'], $modal['source'], $modal['key']);
                 if ($modal['source']) {
@@ -165,9 +193,13 @@ new #[Isolate] class extends Component {
             return;
         }
 
-        foreach ($this->modals as $modal) {
+        foreach (array_reverse($this->modals) as $modal) {
             foreach ($modal['urlParameters'] ?? [] as $paramName) {
                 $this->dispatch('clear-modal-url-params', modal: $paramName);
+            }
+
+            if ($modal['url'] ?? null) {
+                $this->dispatch('restore-modal-url');
             }
 
             if ($modal['source']) {
