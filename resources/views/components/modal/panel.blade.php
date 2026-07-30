@@ -4,48 +4,13 @@
     $topModal ??= true;
     $isStacked = ($iteration ?? 1) > 1;
     $depth ??= 0;
-    $modelId ??= null;
-    // Opt-in: the button only renders when the component declares
-    // `public bool $openAsPage = true;` — by default a modal has no page twin.
-    $openAsPage ??= false;
 
     $size ??= 'default';
     $isNarrow = $size === 'narrow';
 
-    $detailUrl = null;
-    if (isset($modal) && $openAsPage && ! $isNarrow) {
-        foreach (\Illuminate\Support\Facades\Route::getRoutes() as $registeredRoute) {
-            if (($registeredRoute->getAction()['livewire_component'] ?? null) === $modal) {
-                try {
-                    $detailUrl = $modelId
-                        ? route($registeredRoute->getName(), ['modelId' => $modelId])
-                        : route($registeredRoute->getName());
-                } catch (\Throwable) {
-                    $detailUrl = null;
-                }
-                break;
-            }
-        }
-
-        if (! $detailUrl) {
-            $params = ['component' => $modal];
-            if ($modelId) {
-                $params['modelId'] = $modelId;
-            }
-            $detailUrl = route('modal.page', $params);
-        }
-    }
-
-    $modalControlsClass = 'mr-20';
-    if (! $forceFullscreen) {
-        $modalControlsClass = 'mr-30';
-    }
-    if ($detailUrl) {
-        $modalControlsClass = 'mr-40';
-    }
-    if ($isNarrow) {
-        $modalControlsClass = 'mr-12';
-    }
+    // Right margin the header content reserves for the panel controls: the close
+    // button alone, plus one slot when the fullscreen toggle is rendered too.
+    $modalControlsClass = $forceFullscreen || $isNarrow ? 'mr-12' : 'mr-20';
 
     // The fullscreen state lives in the Alpine store so the toggle applies
     // instantly (no server round-trip) and only animatable properties change.
@@ -151,19 +116,6 @@
                     </button>
                 @endif
 
-                @if ($detailUrl)
-                    <!-- Open as Page Button (desktop only) -->
-                    <a
-                        href="{{ $detailUrl }}"
-                        class="absolute! top-4 right-0 my-auto mt-2 mr-[6.5rem] hidden! inline-flex h-8 w-8 items-center justify-center rounded-sm border! border-gray-300! text-gray-700 transition hover:bg-gray-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden sm:flex!"
-                    >
-                        <span class="sr-only">{{ __('Open as page') }}</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                        </svg>
-                    </a>
-                @endif
-
                 <!-- Close Button -->
                 <button
                     type="button"
@@ -262,19 +214,6 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25-5.25v4.5m0-4.5h-4.5m4.5 0L15 9m5.25 11.25v-4.5m0 4.5h-4.5m4.5 0L15 15M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15" />
                         </svg>
                     </button>
-                @endif
-
-                @if ($detailUrl)
-                    <!-- Open as Page Button (desktop only) -->
-                    <a
-                        href="{{ $detailUrl }}"
-                        class="absolute! top-4 right-0 my-auto mt-2 mr-[6.5rem] hidden! inline-flex h-8 w-8 items-center justify-center rounded-sm border! border-gray-300! text-gray-700 transition hover:bg-gray-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden sm:flex!"
-                    >
-                        <span class="sr-only">{{ __('Open as page') }}</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                        </svg>
-                    </a>
                 @endif
 
                 <!-- Close Button -->

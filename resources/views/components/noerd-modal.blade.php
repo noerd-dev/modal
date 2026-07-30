@@ -53,7 +53,6 @@ new #[Isolate] class extends Component {
         $modal['iteration'] = $iteration;
         $modal['urlParameters'] = $this->resolveUrlParameters($modalComponent);
         $modal['forceFullscreen'] = $this->resolveForceFullscreen($modalComponent);
-        $modal['openAsPage'] = $this->resolveOpenAsPage($modalComponent);
         $this->modals[$modal['key']] = $modal;
 
         $this->markTopModal();
@@ -190,21 +189,6 @@ new #[Isolate] class extends Component {
         }
     }
 
-    /**
-     * The "Open as page" button is strictly opt-in: a modal component that also
-     * exists as a full page declares `public bool $openAsPage = true;` — by
-     * default no button is rendered.
-     */
-    private function resolveOpenAsPage(string $componentName): bool
-    {
-        try {
-            $component = Livewire::new($componentName);
-            return (bool) ($component->openAsPage ?? false);
-        } catch (\Throwable) {
-            return false;
-        }
-    }
-
     private function resolveQuickCreateOnNew(string $componentName): bool
     {
         try {
@@ -301,11 +285,9 @@ new #[Isolate] class extends Component {
                                                   :source="$modal['source']"
                                                   :modalKey="$modal['key']"
                                                   :modal="$modal['componentName']"
-                                                  :modelId="$modal['arguments']['modelId'] ?? null"
                                                   :position="$modal['position']"
                                                   :size="$modal['size'] ?? 'default'"
                                                   :forceFullscreen="$modal['forceFullscreen'] ?? false"
-                                                  :openAsPage="$modal['openAsPage'] ?? false"
                                                   :topModal="$modal['topModal']">
                                 <div wire:ignore>
                                     @livewire($modal['componentName'], $modal['arguments'], key($modal['key']))
