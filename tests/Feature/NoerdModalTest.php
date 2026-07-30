@@ -308,6 +308,13 @@ describe('Modal Manager', function (): void {
         expect(panelGeometryBindings($fullscreen))->toBe($default)->not->toBeEmpty();
     });
 
+    it('centers the panel permanently and covers the full viewport in fullscreen', function (): void {
+        $html = renderModalPanel();
+
+        expect($html)->toContain('sm:top-1/2 sm:-translate-y-1/2');
+        expect($html)->toContain('sm:min-h-[100dvh] sm:max-h-[100dvh]');
+    });
+
     it('never reads the shared preference for a forced fullscreen modal', function (): void {
         $html = renderModalPanel('noerd-modal::example.noerd-example-fullscreen-component');
 

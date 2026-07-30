@@ -55,10 +55,13 @@
     // reads (or writes) the shared preference.
     $fullscreenExpression = $forceFullscreen ? 'true' : '$store.app.modalFullscreen';
 
+    // The panel is permanently centered (top-1/2 + -translate-y-1/2); the two
+    // states differ only in min/max sizes, so the fullscreen toggle grows the
+    // panel symmetrically from the center until it covers the whole viewport.
     $panelWidthClasses = $isNarrow
-        ? 'sm:max-w-lg sm:max-h-[calc(100dvh-7rem)] sm:rounded'
-        : 'sm:max-w-7xl sm:max-h-[calc(100dvh-7rem)] sm:rounded';
-    $panelFullscreenClasses = 'sm:max-w-full sm:max-h-[calc(100dvh-3.5rem)] sm:rounded-none';
+        ? 'sm:max-w-lg sm:min-h-0 sm:max-h-[calc(100dvh-7rem)] sm:rounded'
+        : 'sm:max-w-7xl sm:min-h-0 sm:max-h-[calc(100dvh-7rem)] sm:rounded';
+    $panelFullscreenClasses = 'sm:max-w-full sm:min-h-[100dvh] sm:max-h-[100dvh] sm:rounded-none';
     $panelClassExpression = "{$fullscreenExpression} ? '{$panelFullscreenClasses}' : '{$panelWidthClasses}'";
 
     $rightWidthClasses = $isNarrow ? 'max-w-lg' : 'max-w-7xl';
@@ -213,7 +216,7 @@
                 @class([
                     'bg-white mx-auto shadow-sm relative origin-top transition-all duration-200 ease-out',
                     'max-w-full h-[100dvh] rounded-none',
-                    'sm:h-auto sm:mt-14',
+                    'sm:h-auto sm:w-full sm:absolute sm:left-1/2 sm:-translate-x-1/2 sm:top-1/2 sm:-translate-y-1/2',
                     'scale-[0.97]' => $depth === 1,
                     'scale-[0.94]' => $depth === 2,
                     'scale-[0.91]' => $depth === 3,
