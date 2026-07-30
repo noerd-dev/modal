@@ -388,7 +388,7 @@ describe('Open as page', function (): void {
     });
 
     it('renders the button for a component that opts in via its openAsPage property', function (): void {
-        Livewire::component('open-as-page-opt-in', new class () extends \Livewire\Component {
+        Livewire::component('open-as-page-opt-in', new class extends \Livewire\Component {
             public bool $openAsPage = true;
 
             public function render(): string
@@ -406,7 +406,7 @@ describe('Open as page', function (): void {
     });
 
     it('renders no button for an opted-in component in the narrow panel', function (): void {
-        Livewire::component('open-as-page-narrow', new class () extends \Livewire\Component {
+        Livewire::component('open-as-page-narrow', new class extends \Livewire\Component {
             public bool $openAsPage = true;
 
             public function render(): string
