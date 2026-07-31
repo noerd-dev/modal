@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 
 uses(Tests\TestCase::class);
@@ -384,6 +385,82 @@ describe('Modal Route URL', function (): void {
 
         $component->dispatch('closeTopModal')
             ->assertDispatched('restore-modal-url');
+    });
+
+    it('resolves a livewire route name to its component and route url', function (): void {
+        Route::livewire('test-example/{modelId}', 'noerd-modal::example.noerd-example-component')
+            ->name('test.example.detail');
+
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', route: 'test.example.detail', arguments: ['modelId' => 5]);
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['url'])->toBe(route('test.example.detail', ['modelId' => 5, 'modal' => 'true']));
+
+        $component->assertDispatched('set-modal-url');
+    });
+
+    it('resolves a parameterless livewire route with a plain modal url', function (): void {
+        Route::livewire('test-examples', 'noerd-modal::example.noerd-example-component')
+            ->name('test.examples');
+
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', route: 'test.examples', arguments: []);
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['url'])->toBe(route('test.examples', ['modal' => 'true']));
+    });
+
+    it('uses the new sentinel in the url when the modelId param is missing', function (): void {
+        Route::livewire('test-example/{modelId}', 'noerd-modal::example.noerd-example-component')
+            ->name('test.example.detail');
+
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', route: 'test.example.detail', arguments: ['modelId' => null]);
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['url'])->toBe(route('test.example.detail', ['modelId' => 'new', 'modal' => 'true']));
+
+        $component->assertDispatched('set-modal-url');
+    });
+
+    it('resolves the route component without a url when a required non-modelId param is missing', function (): void {
+        Route::livewire('test-example-other/{otherId}', 'noerd-modal::example.noerd-example-component')
+            ->name('test.example.other');
+
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', route: 'test.example.other', arguments: []);
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['url'])->toBeNull();
+
+        $component->assertNotDispatched('set-modal-url');
+    });
+
+    it('opens nothing for an unknown route name', function (): void {
+        expect(
+            Livewire::test('noerd-modal::noerd-modal')
+                ->dispatch('noerdModal', route: 'route.that.does.not.exist', arguments: [])
+                ->get('modals'),
+        )->toBeEmpty();
+    });
+
+    it('treats a dotted component name as a component, never as a route', function (): void {
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: []);
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['url'])->toBeNull();
     });
 
     it('opens a flashed modal on mount with its url', function (): void {

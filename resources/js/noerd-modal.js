@@ -14,17 +14,29 @@ function measurePreModalScrollbarWidth() {
     );
 }
 
+function dispatchNoerdModal(params, args, source, position, size) {
+    params.arguments = args;
+    if (source) params.source = source;
+    if (position) params.position = position;
+    if (size) params.size = size;
+    measurePreModalScrollbarWidth();
+    showModalLoading();
+    Livewire.dispatch('noerdModal', params);
+}
+
 document.addEventListener('alpine:init', () => {
-    // Modal magic
+    // Open a Livewire component in a modal: $modal('crm::task-create-modal', {...})
     Alpine.magic('modal', () => {
         return (component, args = {}, source = null, position = null, size = null) => {
-            const params = { modalComponent: component, arguments: args };
-            if (source) params.source = source;
-            if (position) params.position = position;
-            if (size) params.size = size;
-            measurePreModalScrollbarWidth();
-            showModalLoading();
-            Livewire.dispatch('noerdModal', params);
+            dispatchNoerdModal({ modalComponent: component }, args, source, position, size);
+        };
+    });
+
+    // Open the component behind a named Route::livewire() route in a modal and
+    // rewrite the browser URL to it: $modalRoute('crm.account.detail', {modelId: 5})
+    Alpine.magic('modalRoute', () => {
+        return (route, args = {}, source = null, position = null, size = null) => {
+            dispatchNoerdModal({ route }, args, source, position, size);
         };
     });
 

@@ -31,18 +31,64 @@ new #[Isolate] class extends Component {
         }
     }
 
+    /**
+     * Opens a modal from the noerdModal event. Exactly one of $modalComponent
+     * (a Livewire component name) or $route (the name of a Route::livewire()
+     * route) must be given. A route is resolved to the component behind it and
+     * the browser URL is rewritten to the route (+ ?modal=true); route params
+     * are filled by name from $arguments.
+     */
     #[On('noerdModal')]
     public function bootModal(
-        string  $modalComponent,
+        ?string $modalComponent = null,
         mixed   $arguments = [],
         ?string $source = null,
         ?string $position = null,
         ?string $size = null,
         ?string $url = null,
+        ?string $route = null,
     ): void
     {
         if (! is_array($arguments)) {
             $arguments = ['modelId' => $arguments];
+        }
+
+        if ($route !== null) {
+            $namedRoute = app('router')->getRoutes()->getByName($route);
+            $component = $namedRoute?->getAction('livewire_component');
+
+            if (! is_string($component)) {
+                return;
+            }
+
+            if ($url === null) {
+                try {
+                    $params = array_filter(
+                        array_intersect_key($arguments, array_flip($namedRoute->parameterNames())),
+                        fn ($value): bool => $value !== null && $value !== '',
+                    );
+
+                    // A create modal has no record id — the conventional {modelId}
+                    // param carries the 'new' sentinel (e.g. /crm/account/new), so
+                    // the URL stays shareable and a reload reopens the create modal
+                    // (NoerdPage::prepareRoutedModal() maps 'new' back to null).
+                    if (! isset($params['modelId']) && in_array('modelId', $namedRoute->parameterNames(), true)) {
+                        $params['modelId'] = 'new';
+                    }
+
+                    $url = route($route, $params + ['modal' => 'true']);
+                } catch (\Illuminate\Routing\Exceptions\UrlGenerationException) {
+                    // A required route param other than {modelId} is missing —
+                    // open the component without a URL rewrite.
+                    $url = null;
+                }
+            }
+
+            $modalComponent = $component;
+        }
+
+        if ($modalComponent === null) {
+            return;
         }
 
         // Detail components that opt into quick-create for new records (via a
