@@ -57,7 +57,7 @@ describe('Modal Manager', function (): void {
             ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['count' => 3]);
 
         $modals = $component->get('modals');
-        $topModals = array_filter($modals, fn ($modal) => $modal['topModal'] === true);
+        $topModals = array_filter($modals, fn($modal) => $modal['topModal'] === true);
 
         expect($topModals)->toHaveCount(1);
 
@@ -326,6 +326,44 @@ describe('Modal Manager', function (): void {
 });
 
 describe('Modal Route URL', function (): void {
+    it('collects trait-style queryString aliases into urlParameters', function (): void {
+        // Mirrors NoerdPage::queryStringNoerdPage(): resolveUrlParameters() must
+        // discover public queryString{Trait}() methods so the alias is cleared
+        // from the URL when the modal closes.
+        Livewire::component('zz-modal-query-string-component', new class extends \Livewire\Component {
+            public $modelId = null;
+
+            public function queryStringZzTest(): array
+            {
+                return [
+                    'modelId' => ['as' => 'zzId', 'keep' => false, 'except' => ''],
+                ];
+            }
+
+            public function render(): string
+            {
+                return '<div>zz-query-string</div>';
+            }
+        });
+
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch(
+                'noerdModal',
+                modalComponent: 'zz-modal-query-string-component',
+                arguments: ['modelId' => 5],
+                url: 'https://example.test/zz/5',
+            );
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['urlParameters'])->toContain('zzId');
+
+        $component->assertDispatched(
+            'set-modal-url',
+            fn(string $event, array $params): bool => in_array('zzId', $params['clearParams'], true),
+        );
+    });
+
     it('stores the url on the modal and dispatches set-modal-url', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
             ->dispatch(
@@ -341,7 +379,7 @@ describe('Modal Route URL', function (): void {
 
         $component->assertDispatched(
             'set-modal-url',
-            fn (string $event, array $params): bool => $params['url'] === 'https://example.test/crm/account/5'
+            fn(string $event, array $params): bool => $params['url'] === 'https://example.test/crm/account/5'
                 && $params['clearParams'] === $modal['urlParameters'],
         );
     });
