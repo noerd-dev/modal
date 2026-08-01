@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
+use Tests\TestCase;
 
-uses(Tests\TestCase::class);
+uses(TestCase::class);
 
 describe('Modal Manager', function (): void {
     it('opens a modal when noerdModal event is dispatched', function (): void {
@@ -56,7 +57,7 @@ describe('Modal Manager', function (): void {
             ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['count' => 3]);
 
         $modals = $component->get('modals');
-        $topModals = array_filter($modals, fn($modal) => $modal['topModal'] === true);
+        $topModals = array_filter($modals, fn ($modal) => $modal['topModal'] === true);
 
         expect($topModals)->toHaveCount(1);
 
@@ -451,6 +452,90 @@ describe('Modal Route URL', function (): void {
                 ->dispatch('noerdModal', route: 'route.that.does.not.exist', arguments: [])
                 ->get('modals'),
         )->toBeEmpty();
+    });
+
+    it('falls back to the modalComponent when the route name is not registered', function (): void {
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch(
+                'noerdModal',
+                modalComponent: 'noerd-modal::example.noerd-example-component',
+                arguments: ['modelId' => 5],
+                route: 'route.that.does.not.exist',
+            );
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['url'])->toBeNull();
+
+        $component->assertNotDispatched('set-modal-url');
+    });
+
+    it('prefers the route component over the fallback modalComponent', function (): void {
+        Route::livewire('test-route-wins/{modelId}', 'noerd-modal::example.noerd-example-fullscreen-component')
+            ->name('test.route.wins');
+
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch(
+                'noerdModal',
+                modalComponent: 'noerd-modal::example.noerd-example-component',
+                arguments: ['modelId' => 5],
+                route: 'test.route.wins',
+            );
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-fullscreen-component');
+        expect($modal['url'])->toBe(route('test.route.wins', ['modelId' => 5, 'modal' => 'true']));
+    });
+
+    it('skips the url rewrite when rewriteUrl is false', function (): void {
+        Route::livewire('test-no-rewrite/{modelId}', 'noerd-modal::example.noerd-example-component')
+            ->name('test.no.rewrite');
+
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', arguments: ['modelId' => 5], route: 'test.no.rewrite', rewriteUrl: false);
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['url'])->toBeNull();
+
+        $component->assertNotDispatched('set-modal-url');
+    });
+
+    it('skips the url rewrite when an argument is not expressible in the route', function (): void {
+        Route::livewire('test-filtered-list', 'noerd-modal::example.noerd-example-component')
+            ->name('test.filtered.list');
+
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', arguments: ['accountId' => 5], route: 'test.filtered.list');
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['arguments'])->toBe(['accountId' => 5]);
+        expect($modal['url'])->toBeNull();
+
+        $component->assertNotDispatched('set-modal-url');
+    });
+
+    it('still rewrites the url for chrome-only arguments', function (): void {
+        Route::livewire('test-chrome-args/{modelId}', 'noerd-modal::example.noerd-example-component')
+            ->name('test.chrome.args');
+
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', arguments: [
+                'modelId' => 5,
+                'relations' => ['accountId' => 7],
+                'quickCreate' => true,
+            ], route: 'test.chrome.args');
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['url'])->toBe(route('test.chrome.args', ['modelId' => 5, 'modal' => 'true']));
+
+        $component->assertDispatched('set-modal-url');
     });
 
     it('treats a dotted component name as a component, never as a route', function (): void {

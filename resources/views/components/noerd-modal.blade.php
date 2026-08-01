@@ -11,6 +11,14 @@ new #[Isolate] class extends Component {
 
     private const URL_PARAM_BLACKLIST = ['filter', 'currentTab'];
 
+    /**
+     * Arguments that describe modal chrome rather than record identity. They never
+     * block the URL rewrite of a routed modal — everything else must be expressible
+     * as a route parameter, otherwise the rewritten URL would show something
+     * different on reload (see routeUrlIsTruthful()).
+     */
+    private const URL_NEUTRAL_ARGUMENTS = ['relations', 'quickCreate', 'embedded', 'disableModal', 'source', 'context'];
+
     public array $modals = [];
 
     /**
@@ -32,11 +40,19 @@ new #[Isolate] class extends Component {
     }
 
     /**
-     * Opens a modal from the noerdModal event. Exactly one of $modalComponent
+     * Opens a modal from the noerdModal event. At least one of $modalComponent
      * (a Livewire component name) or $route (the name of a Route::livewire()
      * route) must be given. A route is resolved to the component behind it and
      * the browser URL is rewritten to the route (+ ?modal=true); route params
      * are filled by name from $arguments.
+     *
+     * Given both, the route wins and $modalComponent acts as the FALLBACK for an
+     * unregistered route name — a caller may reference a route owned by an
+     * optional module without breaking when that module is not installed.
+     *
+     * $rewriteUrl: false resolves the route to its component but keeps the
+     * browser URL — for targets that are not addressable (e.g. a list opened
+     * filtered by a parent record).
      */
     #[On('noerdModal')]
     public function bootModal(
@@ -47,6 +63,7 @@ new #[Isolate] class extends Component {
         ?string $size = null,
         ?string $url = null,
         ?string $route = null,
+        bool    $rewriteUrl = true,
     ): void
     {
         if (! is_array($arguments)) {
@@ -57,34 +74,34 @@ new #[Isolate] class extends Component {
             $namedRoute = app('router')->getRoutes()->getByName($route);
             $component = $namedRoute?->getAction('livewire_component');
 
-            if (! is_string($component)) {
-                return;
-            }
+            // An unresolvable route falls through to the $modalComponent fallback
+            // (nothing opens when the caller passed none).
+            if (is_string($component)) {
+                if ($url === null && $rewriteUrl && $this->routeUrlIsTruthful($namedRoute, $arguments)) {
+                    try {
+                        $params = array_filter(
+                            array_intersect_key($arguments, array_flip($namedRoute->parameterNames())),
+                            fn ($value): bool => $value !== null && $value !== '',
+                        );
 
-            if ($url === null) {
-                try {
-                    $params = array_filter(
-                        array_intersect_key($arguments, array_flip($namedRoute->parameterNames())),
-                        fn ($value): bool => $value !== null && $value !== '',
-                    );
+                        // A create modal has no record id — the conventional {modelId}
+                        // param carries the 'new' sentinel (e.g. /crm/account/new), so
+                        // the URL stays shareable and a reload reopens the create modal
+                        // (NoerdPage::prepareRoutedModal() maps 'new' back to null).
+                        if (! isset($params['modelId']) && in_array('modelId', $namedRoute->parameterNames(), true)) {
+                            $params['modelId'] = 'new';
+                        }
 
-                    // A create modal has no record id — the conventional {modelId}
-                    // param carries the 'new' sentinel (e.g. /crm/account/new), so
-                    // the URL stays shareable and a reload reopens the create modal
-                    // (NoerdPage::prepareRoutedModal() maps 'new' back to null).
-                    if (! isset($params['modelId']) && in_array('modelId', $namedRoute->parameterNames(), true)) {
-                        $params['modelId'] = 'new';
+                        $url = route($route, $params + ['modal' => 'true']);
+                    } catch (\Illuminate\Routing\Exceptions\UrlGenerationException) {
+                        // A required route param other than {modelId} is missing —
+                        // open the component without a URL rewrite.
+                        $url = null;
                     }
-
-                    $url = route($route, $params + ['modal' => 'true']);
-                } catch (\Illuminate\Routing\Exceptions\UrlGenerationException) {
-                    // A required route param other than {modelId} is missing —
-                    // open the component without a URL rewrite.
-                    $url = null;
                 }
-            }
 
-            $modalComponent = $component;
+                $modalComponent = $component;
+            }
         }
 
         if ($modalComponent === null) {
@@ -126,6 +143,35 @@ new #[Isolate] class extends Component {
         if ($url !== null) {
             $this->dispatch('set-modal-url', url: $url, clearParams: $modal['urlParameters']);
         }
+    }
+
+    /**
+     * A routed modal may only rewrite the browser URL when that URL would show
+     * the same thing on reload. Every meaningful argument must therefore be
+     * carried by a route parameter — an argument that merely narrows the target
+     * (e.g. accountId on a contacts list) is dropped by route(), and Livewire
+     * only rehydrates #[Url] properties from the query string, so the rewritten
+     * URL would render something else.
+     *
+     * @param  array<string, mixed>  $arguments
+     */
+    private function routeUrlIsTruthful(\Illuminate\Routing\Route $route, array $arguments): bool
+    {
+        $parameterNames = $route->parameterNames();
+
+        foreach ($arguments as $key => $value) {
+            if ($value === null || $value === '' || $value === [] || $value === false) {
+                continue;
+            }
+
+            if (in_array($key, $parameterNames, true) || in_array($key, self::URL_NEUTRAL_ARGUMENTS, true)) {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
     }
 
     /**

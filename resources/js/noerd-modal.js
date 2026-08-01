@@ -34,9 +34,17 @@ document.addEventListener('alpine:init', () => {
 
     // Open the component behind a named Route::livewire() route in a modal and
     // rewrite the browser URL to it: $modalRoute('crm.account.detail', {modelId: 5})
+    //
+    // options.fallbackComponent — opened when the route name is not registered
+    //   (e.g. the owning module is not installed)
+    // options.rewriteUrl: false — resolve the route but keep the browser URL,
+    //   for targets that are not addressable (e.g. a filtered list)
     Alpine.magic('modalRoute', () => {
-        return (route, args = {}, source = null, position = null, size = null) => {
-            dispatchNoerdModal({ route }, args, source, position, size);
+        return (route, args = {}, source = null, position = null, size = null, options = {}) => {
+            const params = { route };
+            if (options.fallbackComponent) params.modalComponent = options.fallbackComponent;
+            if (options.rewriteUrl === false) params.rewriteUrl = false;
+            dispatchNoerdModal(params, args, source, position, size);
         };
     });
 
@@ -142,6 +150,9 @@ document.addEventListener('modal-closed-global', () => {
     document.documentElement.style.paddingRight = '';
     window.scrollTo(0, parseInt(scrollY));
     hideModalLoading();
+    // No modal is left, so no URL is owed back — drop anything the stack still
+    // holds (e.g. after a wire:navigate away from an open routed modal).
+    modalUrlStack.length = 0;
 });
 
 document.addEventListener('keydown', (event) => {
@@ -192,13 +203,15 @@ document.addEventListener('set-modal-url', (event) => {
     const url = event.detail?.url;
     if (!url) return;
 
-    // Defer past Livewire's microtask-batched #[Url] replaceState of the freshly
-    // mounted modal child, so we capture the commit's final URL and our write
-    // lands last.
+    // Push synchronously so a restore dispatched in the SAME tick (a Livewire
+    // request that closes one modal and opens another) still finds its entry.
+    const prev = new URL(window.location.href);
+    (event.detail?.clearParams || []).forEach((param) => prev.searchParams.delete(param));
+    modalUrlStack.push(prev.toString());
+
+    // Only the write is deferred, past Livewire's microtask-batched #[Url]
+    // replaceState of the freshly mounted modal child, so our write lands last.
     setTimeout(() => {
-        const prev = new URL(window.location.href);
-        (event.detail?.clearParams || []).forEach((param) => prev.searchParams.delete(param));
-        modalUrlStack.push(prev.toString());
         window.history.replaceState({}, '', url);
     }, 0);
 });
