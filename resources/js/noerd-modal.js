@@ -14,6 +14,23 @@ function measurePreModalScrollbarWidth() {
     );
 }
 
+// The Livewire component that owns the clicked element. The modal stack
+// dispatches `refreshList-{source}` when the modal closes, so the opener (a list,
+// a detail) reloads once the record was created or edited. PHP openers get this
+// for free — NoerdManager passes the current component — so the Alpine magics
+// resolve the equivalent from the DOM instead of leaving the modal source-less.
+function resolveComponentSource(el) {
+    const root = el?.closest?.('[wire\\:id]');
+
+    if (!root) return null;
+
+    try {
+        return window.Livewire?.find(root.getAttribute('wire:id'))?.__instance?.name ?? null;
+    } catch (e) {
+        return null;
+    }
+}
+
 function dispatchNoerdModal(params, args, source, position, size) {
     params.arguments = args;
     if (source) params.source = source;
@@ -26,9 +43,15 @@ function dispatchNoerdModal(params, args, source, position, size) {
 
 document.addEventListener('alpine:init', () => {
     // Open a Livewire component in a modal: $modal('crm::task-create-modal', {...})
-    Alpine.magic('modal', () => {
+    Alpine.magic('modal', (el) => {
         return (component, args = {}, source = null, position = null, size = null) => {
-            dispatchNoerdModal({ modalComponent: component }, args, source, position, size);
+            dispatchNoerdModal(
+                { modalComponent: component },
+                args,
+                source ?? resolveComponentSource(el),
+                position,
+                size
+            );
         };
     });
 
@@ -39,12 +62,12 @@ document.addEventListener('alpine:init', () => {
     //   (e.g. the owning module is not installed)
     // options.rewriteUrl: false — resolve the route but keep the browser URL,
     //   for targets that are not addressable (e.g. a filtered list)
-    Alpine.magic('modalRoute', () => {
+    Alpine.magic('modalRoute', (el) => {
         return (route, args = {}, source = null, position = null, size = null, options = {}) => {
             const params = { route };
             if (options.fallbackComponent) params.modalComponent = options.fallbackComponent;
             if (options.rewriteUrl === false) params.rewriteUrl = false;
-            dispatchNoerdModal(params, args, source, position, size);
+            dispatchNoerdModal(params, args, source ?? resolveComponentSource(el), position, size);
         };
     });
 
