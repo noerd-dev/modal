@@ -23,7 +23,7 @@ new #[Isolate] class extends Component {
 
     /**
      * A shared detail link (?modal=true) redirects to the user's previous page
-     * and flashes the modal to open there (see NoerdPage::redirectToListModal()).
+     * and flashes the modal to open there (see RoutedModal::redirectToRoutedModal()).
      * The stack consumes that instruction on the redirected page load.
      */
     public function mount(): void
