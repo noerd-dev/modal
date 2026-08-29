@@ -70,7 +70,7 @@ describe('PublishPanelCommand', function (): void {
         $this->artisan('noerd-modal:publish-panel')
             ->assertSuccessful();
 
-        $sourcePath = base_path('app-modules/noerd-modal/resources/views/components/modal/panel.blade.php');
+        $sourcePath = dirname(__DIR__, 2) . '/resources/views/components/modal/panel.blade.php';
         expect(File::get($this->targetPath))->toBe(File::get($sourcePath));
     });
 });
@@ -82,11 +82,15 @@ describe('PublishExampleCommand', function (): void {
         $this->pageFile = $this->targetDir . '/noerd-example-page.blade.php';
         $this->routeFile = base_path('routes/web.php');
 
-        $content = File::get($this->routeFile);
+        // Snapshot the UNTOUCHED file first — afterEach restores exactly this
+        // content, so a route a developer added by hand is never lost. The
+        // stripped copy below is only the clean baseline the tests run against.
+        $this->originalRouteContent = File::get($this->routeFile);
+
+        $content = $this->originalRouteContent;
         $content = preg_replace('/\n*\/\/ Noerd Modal Example\nRoute::livewire\(\'noerd-example-modal\'.*?\n/s', '', $content);
         $content = preg_replace('/\nRoute::livewire\(\'noerd-example-modal\'[^\n]*\n?/', '', $content);
         File::put($this->routeFile, $content);
-        $this->originalRouteContent = File::get($this->routeFile);
 
         foreach ([$this->componentFile, $this->pageFile] as $file) {
             if (File::exists($file)) {
@@ -151,7 +155,9 @@ describe('PublishExampleCommand', function (): void {
     });
 
     it('adds route to web.php', function (): void {
-        expect($this->originalRouteContent)->not->toContain('noerd-example-modal');
+        // The stripped baseline written in beforeEach — not the raw snapshot,
+        // which may legitimately carry a developer's own example route.
+        expect(File::get($this->routeFile))->not->toContain('noerd-example-modal');
 
         $this->artisan('noerd-modal:publish-example')
             ->assertSuccessful()
@@ -163,7 +169,7 @@ describe('PublishExampleCommand', function (): void {
     });
 
     it('does not duplicate route if already exists', function (): void {
-        $routeContent = $this->originalRouteContent . "\nRoute::livewire('noerd-example-modal', 'test');";
+        $routeContent = File::get($this->routeFile) . "\nRoute::livewire('noerd-example-modal', 'test');";
         File::put($this->routeFile, $routeContent);
 
         $this->artisan('noerd-modal:publish-example')
@@ -177,7 +183,7 @@ describe('PublishExampleCommand', function (): void {
         $this->artisan('noerd-modal:publish-example')
             ->assertSuccessful();
 
-        $sourceDir = base_path('app-modules/noerd-modal/resources/views/components/example');
+        $sourceDir = dirname(__DIR__, 2) . '/resources/views/components/example';
 
         expect(File::get($this->componentFile))
             ->toBe(File::get($sourceDir . '/noerd-example-component.blade.php'));
