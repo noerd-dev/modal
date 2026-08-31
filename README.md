@@ -11,7 +11,12 @@ Modals can also be stacked — open another modal from inside an open one with t
 
 ```bash
 composer require noerd/modal
+php artisan noerd:install-modal
 ```
+
+`noerd:install-modal` publishes `config/noerd-modal.php`. The built Vite assets are published
+automatically by the service provider on first boot. Run `php artisan noerd:update-modal` after
+upgrading the package (idempotent, also covered by `noerd:update-all`).
 
 Add source path to your resources/css/app.css file
 ```bash
