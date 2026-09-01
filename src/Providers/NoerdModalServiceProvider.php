@@ -5,8 +5,6 @@ namespace NoerdModal\Providers;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
-use NoerdModal\Commands\NoerdModalInstallCommand;
-use NoerdModal\Commands\NoerdModalUpdateCommand;
 use NoerdModal\Console\Commands\PublishExampleCommand;
 use NoerdModal\Console\Commands\PublishPanelCommand;
 
@@ -37,9 +35,10 @@ class NoerdModalServiceProvider extends ServiceProvider
         $this->publishBuiltAssetsIfNotExist();
 
         if ($this->app->runningInConsole()) {
+            // No noerd:install-modal / noerd:update-modal: the package ships no
+            // app-configs/ and no migrations, and config/noerd-modal.php is already
+            // merged, auto-published on first boot and available via vendor:publish.
             $this->commands([
-                NoerdModalInstallCommand::class,
-                NoerdModalUpdateCommand::class,
                 PublishExampleCommand::class,
                 PublishPanelCommand::class,
             ]);
