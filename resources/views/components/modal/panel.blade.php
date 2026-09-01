@@ -125,7 +125,7 @@
                     "
                     class="absolute! top-4 right-0 my-auto mt-2 mr-6 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm border! border-gray-300! text-gray-600! transition hover:bg-gray-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
                 >
-                    <span class="sr-only">Close modal</span>
+                    <span class="sr-only">{{ __('Close modal') }}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                     </svg>
@@ -225,7 +225,7 @@
                     type="button"
                     class="absolute! top-4 right-0 my-auto mt-2 mr-6 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm border! border-gray-300! text-gray-600! transition hover:bg-gray-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
                 >
-                    <span class="sr-only">Close modal</span>
+                    <span class="sr-only">{{ __('Close modal') }}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                         <path
                             fill-rule="evenodd"
