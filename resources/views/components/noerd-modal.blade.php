@@ -108,9 +108,9 @@ new #[Isolate] class extends Component {
             return;
         }
 
-        // Detail components that opt into quick-create for new records (via a
-        // `public bool $quickCreateOnNew = true;` property) open in the narrow panel
-        // when no record is being edited — no per-call quickCreate flag required.
+        // Components that opt into quick-create for new records (`quickCreate: true`
+        // in their detail or page YAML) open in the narrow panel when no record is
+        // being edited — no per-call quickCreate flag required.
         if (empty($arguments['modelId']) && $this->resolveQuickCreateOnNew($modalComponent)) {
             $size ??= 'narrow';
         }
@@ -315,14 +315,6 @@ new #[Isolate] class extends Component {
 
     private function resolveQuickCreateOnNew(string $componentName): bool
     {
-        try {
-            if (Livewire::new($componentName)->quickCreateOnNew ?? false) {
-                return true;
-            }
-        } catch (\Throwable) {
-            // Fall through to the YAML opt-in below.
-        }
-
         try {
             if (\Noerd\Helpers\StaticConfigHelper::tryGetComponentFields($componentName)['quickCreate'] ?? false) {
                 return true;
