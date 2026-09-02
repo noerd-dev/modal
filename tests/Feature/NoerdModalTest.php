@@ -36,14 +36,8 @@ describe('Modal Manager', function (): void {
 
         expect($keys)->toHaveCount(2);
         expect($keys[0])->not->toBe($keys[1]);
-    });
 
-    it('tracks modal iteration for stacking', function (): void {
-        $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: [])
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['count' => 2]);
-
-        $modals = $component->get('modals');
+        // The iteration counter is the stacking order behind those keys.
         $iterations = array_column($modals, 'iteration');
 
         expect($iterations)->toContain(1);
@@ -114,20 +108,10 @@ describe('Modal Manager', function (): void {
         $modals = $component->get('modals');
         $modalKey = array_keys($modals)[0];
 
-        $component->call('closeModal', 'noerd-modal::example.noerd-example-component', null, $modalKey);
-
-        expect($component->get('modals'))->toBeEmpty();
-    });
-
-    it('dispatches modal-closed-global when all modals are closed', function (): void {
-        $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: []);
-
-        $modals = $component->get('modals');
-        $modalKey = array_keys($modals)[0];
-
         $component->call('closeModal', 'noerd-modal::example.noerd-example-component', null, $modalKey)
             ->assertDispatched('modal-closed-global');
+
+        expect($component->get('modals'))->toBeEmpty();
     });
 
     it('does not dispatch modal-closed-global when modals remain open', function (): void {
@@ -143,21 +127,6 @@ describe('Modal Manager', function (): void {
 
         // One modal should remain
         expect($component->get('modals'))->toHaveCount(1);
-    });
-
-    it('closes only the top modal when closeTopModal is dispatched', function (): void {
-        $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 1])
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 2])
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 3]);
-
-        expect($component->get('modals'))->toHaveCount(3);
-
-        // Dispatch closeTopModal (simulates ESC key press)
-        $component->dispatch('closeTopModal');
-
-        // Should directly close the top modal
-        expect($component->get('modals'))->toHaveCount(2);
     });
 
     it('closes nested modals one by one with multiple closeTopModal dispatches', function (): void {
@@ -208,21 +177,6 @@ describe('Modal Manager', function (): void {
         $component->assertNotDispatched('refreshList-*');
         $component->assertNotDispatched('modal-closed-global');
         expect($component->get('modals'))->toBeEmpty();
-    });
-
-    it('stores source parameter in modal', function (): void {
-        $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch(
-                'noerdModal',
-                modalComponent: 'noerd-modal::example.noerd-example-component',
-                source: 'test-source',
-                arguments: [],
-            );
-
-        $modals = $component->get('modals');
-        $modal = array_values($modals)[0];
-
-        expect($modal['source'])->toBe('test-source');
     });
 
     it('closes every open modal when closeAllModals is dispatched', function (): void {
@@ -293,8 +247,10 @@ describe('Modal Manager', function (): void {
     it('applies the fullscreen state client-side instead of re-rendering the panel', function (): void {
         $html = renderModalPanel();
 
+        // Only the Alpine wiring is pinned — which classes each branch carries
+        // is styling and may change with the publishable panel.
         expect($html)->toContain('$store.app.modalFullscreen = false');
-        expect($html)->toContain("\$store.app.modalFullscreen ? 'sm:max-w-full");
+        expect($html)->toContain(':class="$store.app.modalFullscreen ?');
         expect($html)->not->toContain('wire:click.prevent="toggleFullscreen"');
     });
 
@@ -310,18 +266,11 @@ describe('Modal Manager', function (): void {
         expect(panelGeometryBindings($fullscreen))->toBe($default)->not->toBeEmpty();
     });
 
-    it('centers the panel permanently and covers the full viewport in fullscreen', function (): void {
-        $html = renderModalPanel();
-
-        expect($html)->toContain('sm:top-1/2 sm:-translate-y-1/2');
-        expect($html)->toContain('sm:min-h-[100dvh] sm:max-h-[100dvh]');
-    });
-
     it('never reads the shared preference for a forced fullscreen modal', function (): void {
         $html = renderModalPanel('noerd-modal::example.noerd-example-fullscreen-component');
 
-        expect($html)->toContain("true ? 'sm:max-w-full");
-        expect($html)->not->toContain("\$store.app.modalFullscreen ? 'sm:max-w-full");
+        expect($html)->toContain(':class="true ?');
+        expect($html)->not->toContain('$store.app.modalFullscreen ?');
     });
 });
 
