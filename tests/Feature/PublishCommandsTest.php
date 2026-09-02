@@ -6,26 +6,32 @@ use Illuminate\Support\Facades\File;
 
 uses(Tests\TestCase::class);
 
+/*
+ | Both publish commands write into the HOST tree (resources/views/…,
+ | routes/web.php). They are therefore exercised against a throwaway base
+ | path, so a published panel override or a hand-written route in the real
+ | project is never touched by a test run.
+ */
+beforeEach(function (): void {
+    $this->originalBasePath = $this->app->basePath();
+    $this->hostPath = storage_path('framework/testing/zz-noerd-modal-publish-' . getmypid());
+
+    File::deleteDirectory($this->hostPath);
+    File::ensureDirectoryExists($this->hostPath . '/routes');
+    File::put($this->hostPath . '/routes/web.php', "<?php\n");
+
+    $this->app->setBasePath($this->hostPath);
+});
+
+afterEach(function (): void {
+    $this->app->setBasePath($this->originalBasePath);
+    File::deleteDirectory($this->hostPath);
+});
+
 describe('PublishPanelCommand', function (): void {
     beforeEach(function (): void {
         $this->targetPath = resource_path('views/vendor/noerd/components/modal/panel.blade.php');
         $this->targetDir = dirname($this->targetPath);
-
-        if (File::exists($this->targetPath)) {
-            File::delete($this->targetPath);
-        }
-        if (File::isDirectory($this->targetDir) && count(File::files($this->targetDir)) === 0) {
-            File::deleteDirectory($this->targetDir);
-        }
-    });
-
-    afterEach(function (): void {
-        if (File::exists($this->targetPath)) {
-            File::delete($this->targetPath);
-        }
-        if (File::isDirectory($this->targetDir) && count(File::files($this->targetDir)) === 0) {
-            File::deleteDirectory($this->targetDir);
-        }
     });
 
     it('publishes panel view to vendor directory', function (): void {
@@ -34,15 +40,6 @@ describe('PublishPanelCommand', function (): void {
             ->expectsOutput('Panel view published to: resources/views/vendor/noerd/components/modal/panel.blade.php');
 
         expect(File::exists($this->targetPath))->toBeTrue();
-    });
-
-    it('creates directory structure if it does not exist', function (): void {
-        expect(File::isDirectory($this->targetDir))->toBeFalse();
-
-        $this->artisan('noerd-modal:publish-panel')
-            ->assertSuccessful();
-
-        expect(File::isDirectory($this->targetDir))->toBeTrue();
     });
 
     it('fails when file already exists without force flag', function (): void {
@@ -81,32 +78,6 @@ describe('PublishExampleCommand', function (): void {
         $this->componentFile = $this->targetDir . '/noerd-example-component.blade.php';
         $this->pageFile = $this->targetDir . '/noerd-example-page.blade.php';
         $this->routeFile = base_path('routes/web.php');
-
-        // Snapshot the UNTOUCHED file first — afterEach restores exactly this
-        // content, so a route a developer added by hand is never lost. The
-        // stripped copy below is only the clean baseline the tests run against.
-        $this->originalRouteContent = File::get($this->routeFile);
-
-        $content = $this->originalRouteContent;
-        $content = preg_replace('/\n*\/\/ Noerd Modal Example\nRoute::livewire\(\'noerd-example-modal\'.*?\n/s', '', $content);
-        $content = preg_replace('/\nRoute::livewire\(\'noerd-example-modal\'[^\n]*\n?/', '', $content);
-        File::put($this->routeFile, $content);
-
-        foreach ([$this->componentFile, $this->pageFile] as $file) {
-            if (File::exists($file)) {
-                File::delete($file);
-            }
-        }
-    });
-
-    afterEach(function (): void {
-        foreach ([$this->componentFile, $this->pageFile] as $file) {
-            if (File::exists($file)) {
-                File::delete($file);
-            }
-        }
-
-        File::put($this->routeFile, $this->originalRouteContent);
     });
 
     it('publishes example component files', function (): void {
@@ -115,17 +86,6 @@ describe('PublishExampleCommand', function (): void {
 
         expect(File::exists($this->componentFile))->toBeTrue();
         expect(File::exists($this->pageFile))->toBeTrue();
-    });
-
-    it('creates target directory if it does not exist', function (): void {
-        if (File::isDirectory($this->targetDir)) {
-            File::deleteDirectory($this->targetDir);
-        }
-
-        $this->artisan('noerd-modal:publish-example')
-            ->assertSuccessful();
-
-        expect(File::isDirectory($this->targetDir))->toBeTrue();
     });
 
     it('warns when files already exist without force flag', function (): void {
@@ -155,8 +115,6 @@ describe('PublishExampleCommand', function (): void {
     });
 
     it('adds route to web.php', function (): void {
-        // The stripped baseline written in beforeEach — not the raw snapshot,
-        // which may legitimately carry a developer's own example route.
         expect(File::get($this->routeFile))->not->toContain('noerd-example-modal');
 
         $this->artisan('noerd-modal:publish-example')
