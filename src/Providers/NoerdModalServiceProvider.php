@@ -55,6 +55,10 @@ class NoerdModalServiceProvider extends ServiceProvider
             return;
         }
 
+        // A host may not have a config directory yet (a bare skeleton, a test
+        // base path) — File::copy() would fail on the missing parent.
+        File::ensureDirectoryExists(dirname($targetPath));
+
         File::copy($sourcePath, $targetPath);
     }
 

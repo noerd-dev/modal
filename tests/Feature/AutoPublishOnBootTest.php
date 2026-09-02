@@ -17,9 +17,9 @@ beforeEach(function (): void {
     $this->hostPath = storage_path('framework/testing/zz-noerd-modal-boot-' . getmypid());
 
     File::deleteDirectory($this->hostPath);
-    // A Laravel host always has a config directory; the provider copies into it.
-    File::ensureDirectoryExists($this->hostPath . '/config');
 
+    // Deliberately NOT creating config/ — the provider has to create the
+    // directory it copies into.
     $this->app->setBasePath($this->hostPath);
 
     $this->moduleDir = dirname(__DIR__, 2);
@@ -32,7 +32,7 @@ afterEach(function (): void {
 });
 
 it('publishes the module config on boot when the host has none', function (): void {
-    expect(File::exists(config_path('noerd-modal.php')))->toBeFalse();
+    expect(File::isDirectory(config_path()))->toBeFalse();
 
     ($this->bootProvider)();
 
@@ -41,6 +41,7 @@ it('publishes the module config on boot when the host has none', function (): vo
 });
 
 it('never overwrites a host config the user has edited', function (): void {
+    File::ensureDirectoryExists(config_path());
     File::put(config_path('noerd-modal.php'), "<?php\n\nreturn ['position' => 'right'];\n");
 
     ($this->bootProvider)();
