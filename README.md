@@ -13,12 +13,24 @@ Modals can also be stacked — open another modal from inside an open one with t
 composer require noerd/modal
 ```
 
+That is all — nothing needs to be published. The bundled JavaScript is served by the package itself
+through the route `/noerd-modal/{file}` (like Livewire serves `livewire.js`), so `public/` stays
+untouched and the package works from `vendor/` as well as from a path repository.
+
 Add source path to your resources/css/app.css file
 ```bash
 @source '../../vendor/noerd/modal/resources/views/**/*.blade.php';
 ```
 
 ## Configuration
+
+The config is merged automatically. Publish it only when you want to change the default panel
+position (`center` or `right`):
+
+```bash
+php artisan vendor:publish --tag=noerd-modal-config
+```
+
 Add Assets between your head tags.
 
 ```bash
@@ -90,6 +102,14 @@ Closing follows LIFO order:
 - Dispatch `closeAllModals` to clear the entire stack at once.
 
 Layering is handled automatically: only the top modal is interactive; modals beneath it are dimmed and slightly scaled down — no styling work required on your end.
+
+## Developing the package
+
+Run `npm run dev` inside the package directory: it writes the Vite hot file to
+`public/vendor/noerd-modal/hot` of the host application (the vite config assumes the package lives
+in `app-modules/noerd-modal`), and `<x-noerd::noerd-modal-assets/>` then loads the bundle from the
+dev server instead of the package route. `npm run build` writes the bundle to `dist/build`, which is
+committed and shipped with the package.
 
 ## Publishing the Example
 

@@ -1,13 +1,17 @@
 @php
     use Illuminate\Foundation\Vite;
+    use NoerdModal\Support\AssetManifest;
 
-    $vite = clone app(Vite::class);
+    // Written by `npm run dev` inside the package — while the Vite dev server
+    // runs, the bundle is served from there instead of the package route.
+    $hotFile = base_path('public/vendor/noerd-modal/hot');
 @endphp
 
-{{
-    $vite->useHotFile(base_path('public/vendor/noerd-modal/hot'))
-        ->useBuildDirectory('vendor/noerd-modal')
-        ->withEntryPoints([
-            'resources/js/noerd-modal.js',
-        ])
-}}
+@if (file_exists($hotFile))
+    {{ (clone app(Vite::class))->useHotFile($hotFile)->withEntryPoints([AssetManifest::SCRIPT_ENTRY]) }}
+@else
+    @foreach (AssetManifest::styleFiles() as $styleFile)
+        <link rel="stylesheet" href="{{ route('noerd-modal.asset', ['file' => $styleFile]) }}">
+    @endforeach
+    <script type="module" src="{{ route('noerd-modal.asset', ['file' => AssetManifest::scriptFile()]) }}"></script>
+@endif

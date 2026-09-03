@@ -2,11 +2,12 @@
 
 namespace NoerdModal\Providers;
 
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use NoerdModal\Console\Commands\PublishExampleCommand;
 use NoerdModal\Console\Commands\PublishPanelCommand;
+use NoerdModal\Http\Controllers\AssetController;
 
 class NoerdModalServiceProvider extends ServiceProvider
 {
@@ -19,26 +20,17 @@ class NoerdModalServiceProvider extends ServiceProvider
         Livewire::addNamespace('noerd-modal', viewPath: __DIR__ . '/../../resources/views/components');
         Livewire::addLocation(viewPath: __DIR__ . '/../../resources/views/components');
 
-        // Publish config
-        $this->publishes([
-            __DIR__ . '/../../config/noerd-modal.php' => config_path('noerd-modal.php'),
-        ], 'noerd-modal-config');
-
-        // Publish built Vite assets
-        $this->publishes([
-            __DIR__ . '/../../dist/build' => public_path('vendor/noerd-modal'),
-        ], 'noerd-modal-assets');
-
-        // Auto-publish config if not exists
-        $this->publishConfigIfNotExists();
-
-        // Auto-publish built assets if not exists
-        $this->publishBuiltAssetsIfNotExist();
+        $this->registerAssetRoute();
 
         if ($this->app->runningInConsole()) {
-            // No noerd:install-modal / noerd:update-modal: the package ships no
-            // app-configs/ and no migrations, and config/noerd-modal.php is already
-            // merged, auto-published on first boot and available via vendor:publish.
+            // The only thing a host may publish is the config — and only on
+            // request. The bundle is served from the package directory by the
+            // asset route, so nothing is ever copied into public/ and no
+            // noerd:install-modal / noerd:update-modal command exists.
+            $this->publishes([
+                __DIR__ . '/../../config/noerd-modal.php' => config_path('noerd-modal.php'),
+            ], 'noerd-modal-config');
+
             $this->commands([
                 PublishExampleCommand::class,
                 PublishPanelCommand::class,
@@ -46,37 +38,14 @@ class NoerdModalServiceProvider extends ServiceProvider
         }
     }
 
-    private function publishConfigIfNotExists(): void
+    /**
+     * Serves the prebuilt bundle from dist/build — like Livewire's livewire.js
+     * route. No middleware: a static asset needs neither a session nor CSRF.
+     */
+    private function registerAssetRoute(): void
     {
-        $targetPath = config_path('noerd-modal.php');
-        $sourcePath = __DIR__ . '/../../config/noerd-modal.php';
-
-        if (! File::exists($sourcePath) || File::exists($targetPath)) {
-            return;
-        }
-
-        // A host may not have a config directory yet (a bare skeleton, a test
-        // base path) — File::copy() would fail on the missing parent.
-        File::ensureDirectoryExists(dirname($targetPath));
-
-        File::copy($sourcePath, $targetPath);
-    }
-
-    private function publishBuiltAssetsIfNotExist(): void
-    {
-        $targetPath = public_path('vendor/noerd-modal/manifest.json');
-        $sourcePath = __DIR__ . '/../../dist/build/manifest.json';
-
-        if (! File::exists($sourcePath)) {
-            return;
-        }
-
-        $shouldPublish = ! File::exists($targetPath)
-            || File::lastModified($sourcePath) > File::lastModified($targetPath);
-
-        if ($shouldPublish) {
-            File::ensureDirectoryExists(public_path('vendor/noerd-modal'));
-            File::copyDirectory(__DIR__ . '/../../dist/build', public_path('vendor/noerd-modal'));
-        }
+        Route::get('/noerd-modal/{file}', AssetController::class)
+            ->where('file', '[A-Za-z0-9._-]+')
+            ->name('noerd-modal.asset');
     }
 }
