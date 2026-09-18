@@ -3,7 +3,11 @@
     $isRight = ($position ?? 'center') === 'right';
     $topModal ??= true;
     $isStacked = ($iteration ?? 1) > 1;
-    $depth ??= 0;
+
+    // A fullscreen panel covers the whole viewport by definition, so it never
+    // takes part in the stacked-depth scaling: shrinking it would reveal the
+    // page behind it and contradict `forceModalFullscreen`.
+    $depth = ($forceFullscreen ?? false) ? 0 : ($depth ?? 0);
 
     $size ??= 'default';
     $isNarrow = $size === 'narrow';
