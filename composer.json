@@ -3,7 +3,7 @@
     "description": "Open each livewire component in a modal window.",
     "type": "library",
     "version": "v0.3.31",
-    "license": "proprietary",
+    "license": "MIT",
     "require": {
         "php": "^8.3",
         "laravel/framework": "^12.0 || ^13.0",
