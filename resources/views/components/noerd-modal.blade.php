@@ -6,6 +6,7 @@ use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Attributes\Isolate;
+use Livewire\Attributes\Locked;
 
 new #[Isolate] class extends Component {
 
@@ -19,6 +20,11 @@ new #[Isolate] class extends Component {
      */
     private const URL_NEUTRAL_ARGUMENTS = ['relations', 'quickCreate', 'embedded', 'disableModal', 'source', 'context'];
 
+    /**
+     * The stack is written by the server only (bootModal(), closeModal(), …). Locked,
+     * so a forged update request cannot inject entries or components into it.
+     */
+    #[Locked]
     public array $modals = [];
 
     /**

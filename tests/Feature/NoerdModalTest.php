@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -272,6 +273,14 @@ describe('Modal Manager', function (): void {
         expect($html)->toContain(':class="true ?');
         expect($html)->not->toContain('$store.app.modalFullscreen ?');
     });
+
+    it('rejects a client update of the modal stack', function (array|int $value): void {
+        Livewire::test('noerd-modal::noerd-modal')
+            ->set('modals', $value);
+    })->with([
+        'a scalar entry' => [[1]],
+        'a forged component' => [[['componentName' => 'noerd-modal::example.noerd-example-component']]],
+    ])->throws(CannotUpdateLockedPropertyException::class);
 });
 
 describe('Modal Route URL', function (): void {
