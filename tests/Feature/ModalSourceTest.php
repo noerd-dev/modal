@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
-uses(Tests\TestCase::class);
+uses(NoerdModal\Tests\TestCase::class);
 
 describe('Alpine modal source', function (): void {
     it('tags every modal opened from Alpine with the owning Livewire component', function (): void {
@@ -33,6 +33,9 @@ describe('Alpine modal source', function (): void {
         // The module ships a prebuilt bundle — a JS change that was never rebuilt
         // would leave every installation on the old behaviour.
         expect(file_get_contents($moduleDir . '/dist/build/' . $asset))
-            ->toContain('[wire\\\\:id]');
+            ->toContain('[wire\\\\:id]')
+            ->toContain('noerd-modal-loading-end')
+            ->toContain('defaultPrevented')
+            ->not->toContain('set-app-id');
     });
 });

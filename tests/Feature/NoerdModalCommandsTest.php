@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Artisan;
 
-uses(Tests\TestCase::class);
+uses(NoerdModal\Tests\TestCase::class);
 
 it('registers only its own publish commands', function (): void {
     $commands = Artisan::all();

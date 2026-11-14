@@ -35,9 +35,20 @@
 
     $rightWidthClasses = $isNarrow ? 'max-w-lg' : 'max-w-7xl';
     $rightClassExpression = "{$fullscreenExpression} ? 'max-w-full' : '{$rightWidthClasses}'";
+
+    // Ids are unique per stacked panel. The dialog is labelled by the modal
+    // title: the core modal-title component binds `modalTitleId` (from the
+    // x-data below) as its id; without such a title the aria-label applies.
+    $panelId = 'noerd-modal-' . ($modalKey ?? \Illuminate\Support\Str::random(12));
+    $titleId = $panelId . '-title';
 @endphp
+{{--
+    The x-data of the panel body below is a CONTRACT with noerd/noerd: its
+    page, modal-title and list header components read `isModal`,
+    `isRight`, `modalFullscreen`, `modalControlsClass` and `modalTitleId`. A
+    published panel must keep these keys.
+--}}
 <div
-    x-noerd::dialog
     x-show="open"
     x-init="$store.app.modalFullscreen = {{ session('modal_fullscreen', false) ? 'true' : 'false' }}; setTimeout(() => open = true, 0)"
     x-transition:enter="transition ease-out duration-300"
@@ -53,7 +64,7 @@
 >
     <!-- Overlay -->
     <div
-        x-noerd::dialog:overlay
+        aria-hidden="true"
         @class([
             'fixed inset-0',
             'bg-gray-800/50' => !$isStacked,
@@ -64,7 +75,7 @@
         <!-- Panel (right position) -->
         <div
             x-show="open"
-            id="modal"
+            id="{{ $panelId }}"
             modal="{{ $modal }}"
             class="relative h-[100dvh] w-full items-start justify-end"
             x-transition:enter="transition transform ease-out duration-200"
@@ -76,6 +87,10 @@
         >
             <div
                 x-trap="open"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="{{ $titleId }}"
+                aria-label="{{ __('Dialog') }}"
                 class="relative ml-auto h-[100dvh] max-w-full origin-right bg-white shadow-sm transition-all duration-200 ease-out"
                 :class="{{ $rightClassExpression }}"
                 x-data="{ isRight: true }"
@@ -94,7 +109,7 @@
                         "
                         class="absolute! top-4 right-0 my-auto mt-2 mr-16 hidden! inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm border! border-gray-300! text-gray-700 transition hover:bg-gray-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden sm:flex!"
                     >
-                        <span class="sr-only">Toggle fullscreen</span>
+                        <span class="sr-only">{{ __('Toggle fullscreen') }}</span>
                         <svg
                             x-show="$store.app.modalFullscreen"
                             xmlns="http://www.w3.org/2000/svg"
@@ -123,10 +138,7 @@
                 <!-- Close Button -->
                 <button
                     type="button"
-                    @click="
-                        open = false;
-                        setTimeout(() => Livewire.dispatch('closeTopModal'), 200);
-                    "
+                    @click="window.noerdCloseTopModal ? window.noerdCloseTopModal() : (open = false, setTimeout(() => Livewire.dispatch('closeTopModal'), 200))"
                     class="absolute! top-4 right-0 my-auto mt-2 mr-6 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm border! border-gray-300! text-gray-600! transition hover:bg-gray-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
                 >
                     <span class="sr-only">{{ __('Close modal') }}</span>
@@ -136,7 +148,7 @@
                 </button>
 
                 <div
-                    x-data="{ isModal: true, isRight: true, modalControlsClass: '{{ $modalControlsClass }}', get modalFullscreen() { return {{ $fullscreenExpression }} } }"
+                    x-data="{ isModal: true, isRight: true, modalControlsClass: '{{ $modalControlsClass }}', modalTitleId: '{{ $titleId }}', get modalFullscreen() { return {{ $fullscreenExpression }} } }"
                     class="h-full overflow-y-auto p-6 pt-12"
                     x-effect="
                         if (open)
@@ -156,7 +168,7 @@
         <!-- Panel (center position) -->
         <div
             x-show="open"
-            id="modal"
+            id="{{ $panelId }}"
             modal="{{ $modal }}"
             class="relative my-0 h-[100dvh] w-full items-start justify-center"
             x-transition:enter="transition transform ease-out duration-100"
@@ -168,6 +180,10 @@
         >
             <div
                 x-trap="open"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="{{ $titleId }}"
+                aria-label="{{ __('Dialog') }}"
                 :class="{{ $panelClassExpression }}"
                 @class([
                     'bg-white mx-auto shadow-sm relative origin-top transition-all duration-200 ease-out',
@@ -194,7 +210,7 @@
                         "
                         class="absolute! top-4 right-0 my-auto mt-2 mr-16 hidden! inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm border! border-gray-300! text-gray-700 transition hover:bg-gray-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden sm:flex!"
                     >
-                        <span class="sr-only">Toggle fullscreen</span>
+                        <span class="sr-only">{{ __('Toggle fullscreen') }}</span>
                         <svg
                             x-show="$store.app.modalFullscreen"
                             xmlns="http://www.w3.org/2000/svg"
@@ -222,10 +238,7 @@
 
                 <!-- Close Button -->
                 <button
-                    @click="
-                        open = false;
-                        setTimeout(() => Livewire.dispatch('closeTopModal'), 200);
-                    "
+                    @click="window.noerdCloseTopModal ? window.noerdCloseTopModal() : (open = false, setTimeout(() => Livewire.dispatch('closeTopModal'), 200))"
                     type="button"
                     class="absolute! top-4 right-0 my-auto mt-2 mr-6 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm border! border-gray-300! text-gray-600! transition hover:bg-gray-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
                 >
@@ -240,7 +253,7 @@
                 </button>
 
                 <div
-                    x-data="{ isModal: true, isRight: false, modalControlsClass: '{{ $modalControlsClass }}', get modalFullscreen() { return {{ $fullscreenExpression }} } }"
+                    x-data="{ isModal: true, isRight: false, modalControlsClass: '{{ $modalControlsClass }}', modalTitleId: '{{ $titleId }}', get modalFullscreen() { return {{ $fullscreenExpression }} } }"
                     class="p-6 pt-12"
                     x-effect="
                         if (open)

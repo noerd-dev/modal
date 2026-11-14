@@ -31,6 +31,22 @@ function resolveComponentSource(el) {
     }
 }
 
+function extendAppStore(defaults) {
+    const store = Alpine.store('app');
+
+    if (!store) {
+        Alpine.store('app', defaults);
+
+        return;
+    }
+
+    Object.entries(defaults).forEach(([key, value]) => {
+        if (!(key in store)) {
+            store[key] = value;
+        }
+    });
+}
+
 function dispatchNoerdModal(params, args, source, position, size) {
     params.arguments = args;
     if (source) params.source = source;
@@ -71,16 +87,15 @@ document.addEventListener('alpine:init', () => {
         };
     });
 
-    // Alpine Stores
-    Alpine.store('app', {
-        currentId: null,
+    // The shared Alpine store `app`. noerd/noerd adds its own keys to the same
+    // store (the active list of the keyboard navigation), and whichever bundle
+    // loads first creates it — so neither side replaces the store, both only add
+    // the keys they own.
+    extendAppStore({
         modalOpen: false,
         modalFullscreen: false,
         modalLoading: false,
         _modalLoadingTimeout: null,
-        setId(id) {
-            this.currentId = id;
-        }
     });
 
     measurePreModalScrollbarWidth();
@@ -134,17 +149,24 @@ document.addEventListener('livewire:init', () => {
     }
 });
 
+// The overlay ends as soon as a modal renders (the panel's x-init), when the
+// stack opens nothing (noerd-modal-loading-end) or when a Livewire request
+// fails (403 from an access guard, an exception in the opened component). The
+// timeout is the last resort only; the overlay never takes pointer events.
+const MODAL_LOADING_TIMEOUT = 10000;
+
 function showModalLoading() {
     const store = Alpine.store('app');
     store.modalLoading = true;
     clearTimeout(store._modalLoadingTimeout);
     store._modalLoadingTimeout = setTimeout(() => {
         store.modalLoading = false;
-    }, 10000);
+    }, MODAL_LOADING_TIMEOUT);
 }
 
 function hideModalLoading() {
     const store = Alpine.store('app');
+    if (!store) return;
     store.modalLoading = false;
     clearTimeout(store._modalLoadingTimeout);
 }
@@ -154,15 +176,27 @@ document.addEventListener('livewire:init', () => {
     Livewire.on('noerdModal', () => {
         showModalLoading();
     });
+
+    if (typeof Livewire?.hook === 'function') {
+        Livewire.hook('request', ({ fail }) => {
+            fail(() => hideModalLoading());
+        });
+    }
 });
 
-document.addEventListener('set-app-id', (event) => {
-    Alpine.store('app').setId(event.detail.id);
+document.addEventListener('noerd-modal-loading-end', () => {
+    hideModalLoading();
 });
 
-document.addEventListener('modal-closed-global', () => {
-    Alpine.store('app').modalOpen = false;
-    Alpine.store('app').modalFullscreen = false;
+// Releases the scroll lock and every modal flag of the store. After a
+// wire:navigate the stack is rendered anew without any modal, so the flags of
+// the page that was left must not survive (an ESC would be swallowed).
+function resetModalState({ restoreScroll }) {
+    const store = Alpine.store('app');
+    if (store) {
+        store.modalOpen = false;
+        store.modalFullscreen = false;
+    }
     const scrollY = document.body.dataset.scrollY || '0';
     document.body.style.position = '';
     document.body.style.top = '';
@@ -171,46 +205,77 @@ document.addEventListener('modal-closed-global', () => {
     document.body.style.overflowY = '';
     document.documentElement.style.overflowY = '';
     document.documentElement.style.paddingRight = '';
-    window.scrollTo(0, parseInt(scrollY));
+    if (restoreScroll) {
+        window.scrollTo(0, parseInt(scrollY));
+    }
     hideModalLoading();
     // No modal is left, so no URL is owed back — drop anything the stack still
     // holds (e.g. after a wire:navigate away from an open routed modal).
     modalUrlStack.length = 0;
+}
+
+document.addEventListener('livewire:navigated', () => {
+    if (Alpine.store('app')?.modalOpen) {
+        resetModalState({ restoreScroll: false });
+    }
 });
 
+document.addEventListener('modal-closed-global', () => {
+    resetModalState({ restoreScroll: true });
+});
+
+// ESC closes the top modal — unless an element inside already handled the key
+// (a dropdown or popover that closes itself calls preventDefault()). The event
+// is not stopped, so `@keydown.escape.window` listeners still run.
 document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && Alpine.store('app').modalOpen) {
-        event.preventDefault();
-        event.stopPropagation();
-        closeTopModalWithTransition();
+    if (event.key !== 'Escape' || event.defaultPrevented || !Alpine.store('app')?.modalOpen) {
+        return;
     }
+
+    event.preventDefault();
+    closeTopModalWithTransition();
 });
 
 // Mirror the X-button close behaviour: trigger the leave transition on the
 // topmost modal panel first, then dispatch closeTopModal after the animation
-// has had time to play.
+// has had time to play. The panel is marked `data-closing`, so a second ESC or
+// a click on X during the transition does not close the modal below as well.
 function closeTopModalWithTransition() {
     const panels = document.querySelectorAll('[modal]');
     const topPanel = panels[panels.length - 1];
 
-    if (topPanel) {
-        let el = topPanel;
-        while (el && el !== document.body) {
-            if (el._x_dataStack) {
-                for (const scope of el._x_dataStack) {
-                    if ('open' in scope) {
-                        scope.open = false;
-                        setTimeout(() => Livewire.dispatch('closeTopModal'), 200);
-                        return;
-                    }
+    if (!topPanel) {
+        Livewire.dispatch('closeTopModal');
+
+        return;
+    }
+
+    if (topPanel.dataset.closing) {
+        return;
+    }
+
+    topPanel.dataset.closing = 'true';
+
+    let el = topPanel;
+    while (el && el !== document.body) {
+        if (el._x_dataStack) {
+            for (const scope of el._x_dataStack) {
+                if ('open' in scope) {
+                    scope.open = false;
+                    setTimeout(() => Livewire.dispatch('closeTopModal'), 200);
+                    return;
                 }
             }
-            el = el.parentElement;
         }
+        el = el.parentElement;
     }
 
     Livewire.dispatch('closeTopModal');
 }
+
+// The panel's X button calls the same function (a published panel without it
+// falls back to its own inline close).
+window.noerdCloseTopModal = closeTopModalWithTransition;
 
 // Listen for clear-modal-url-params event from close button
 document.addEventListener('clear-modal-url-params', (event) => {
@@ -235,14 +300,14 @@ document.addEventListener('set-modal-url', (event) => {
     // Only the write is deferred, past Livewire's microtask-batched #[Url]
     // replaceState of the freshly mounted modal child, so our write lands last.
     setTimeout(() => {
-        window.history.replaceState({}, '', url);
+        window.history.replaceState(window.history.state, '', url);
     }, 0);
 });
 
 document.addEventListener('restore-modal-url', () => {
     const prev = modalUrlStack.pop();
     if (prev) {
-        window.history.replaceState({}, '', prev);
+        window.history.replaceState(window.history.state, '', prev);
     }
 });
 
@@ -254,6 +319,6 @@ function clearModalUrlParams(paramName) {
 
     if (url.searchParams.has(paramName)) {
         url.searchParams.delete(paramName);
-        window.history.replaceState({}, '', url.toString());
+        window.history.replaceState(window.history.state, '', url.toString());
     }
 }

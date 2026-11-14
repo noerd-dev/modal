@@ -1,10 +1,10 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Composer dependencies (excluded to prevent class conflicts when used as path repository)
 vendor/
 composer.lock
+.phpunit.cache/
 
 # Build outputs (these should be versioned for package usage)
 # dist/

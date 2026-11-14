@@ -3,9 +3,10 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Livewire\Exceptions\MethodNotFoundException;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
-use Tests\TestCase;
+use NoerdModal\Tests\TestCase;
 
 uses(TestCase::class);
 
@@ -14,7 +15,7 @@ describe('Modal Manager', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
             ->dispatch(
                 'noerdModal',
-                modalComponent: 'noerd-modal::example.noerd-example-component',
+                modalComponent: 'zz-modal-target',
                 arguments: ['name' => 'John Doe'],
             );
 
@@ -22,15 +23,15 @@ describe('Modal Manager', function (): void {
         expect($modals)->toHaveCount(1);
 
         $modal = array_values($modals)[0];
-        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['componentName'])->toBe('zz-modal-target');
         expect($modal['arguments'])->toBe(['name' => 'John Doe']);
         expect($modal['show'])->toBeTrue();
     });
 
     it('creates unique modal keys for each modal', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: [])
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['count' => 2]);
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: [])
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['count' => 2]);
 
         $modals = $component->get('modals');
         $keys = array_keys($modals);
@@ -47,9 +48,9 @@ describe('Modal Manager', function (): void {
 
     it('marks only the top modal as topModal', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: [])
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['count' => 2])
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['count' => 3]);
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: [])
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['count' => 2])
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['count' => 3]);
 
         $modals = $component->get('modals');
         $topModals = array_filter($modals, fn($modal) => $modal['topModal'] === true);
@@ -63,7 +64,7 @@ describe('Modal Manager', function (): void {
 
     it('resizes the top modal in place without closing or reopening it', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 1], size: 'narrow');
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['id' => 1], size: 'narrow');
 
         $originalKey = array_keys($component->get('modals'))[0];
         expect($component->get('modals')[$originalKey]['size'])->toBe('narrow');
@@ -82,8 +83,8 @@ describe('Modal Manager', function (): void {
 
     it('only resizes the top modal of a stack', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 1], size: 'narrow')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 2], size: 'narrow');
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['id' => 1], size: 'narrow')
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['id' => 2], size: 'narrow');
 
         $keys = array_keys($component->get('modals'));
         [$bottomKey, $topKey] = $keys;
@@ -102,14 +103,11 @@ describe('Modal Manager', function (): void {
             ->assertNotDispatched('modal-closed-global');
     });
 
-    it('closes a modal when closeModal event is dispatched', function (): void {
+    it('dispatches modal-closed-global when closeTopModal closes the last modal', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: []);
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: []);
 
-        $modals = $component->get('modals');
-        $modalKey = array_keys($modals)[0];
-
-        $component->call('closeModal', 'noerd-modal::example.noerd-example-component', null, $modalKey)
+        $component->dispatch('closeTopModal')
             ->assertDispatched('modal-closed-global');
 
         expect($component->get('modals'))->toBeEmpty();
@@ -117,23 +115,47 @@ describe('Modal Manager', function (): void {
 
     it('does not dispatch modal-closed-global when modals remain open', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: [])
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['count' => 2]);
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: [])
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['count' => 2]);
 
-        $modals = $component->get('modals');
-        $firstModalKey = array_keys($modals)[0];
+        $bottomKey = array_keys($component->get('modals'))[0];
 
-        $component->call('closeModal', 'noerd-modal::example.noerd-example-component', null, $firstModalKey)
+        $component->dispatch('closeTopModal')
             ->assertNotDispatched('modal-closed-global');
 
-        // One modal should remain
-        expect($component->get('modals'))->toHaveCount(1);
+        // The bottom modal remains and is the top of the stack now.
+        expect(array_keys($component->get('modals')))->toBe([$bottomKey]);
+    });
+
+    it('offers the browser no way to remove a single entry of the stack', function (): void {
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: []);
+
+        $modalKey = array_keys($component->get('modals'))[0];
+
+        $component->call('closeModal', 'zz-modal-target', null, $modalKey);
+    })->throws(MethodNotFoundException::class);
+
+    it('ends the loading overlay when nothing opens', function (): void {
+        Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', route: 'route.that.does.not.exist', arguments: [])
+            ->assertDispatched('noerd-modal-loading-end');
+
+        Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', arguments: [])
+            ->assertDispatched('noerd-modal-loading-end');
+    });
+
+    it('does not end the loading overlay early when a modal opens', function (): void {
+        Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: [])
+            ->assertNotDispatched('noerd-modal-loading-end');
     });
 
     it('closes nested modals one by one with multiple closeTopModal dispatches', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 1])
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 2]);
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['id' => 1])
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['id' => 2]);
 
         expect($component->get('modals'))->toHaveCount(2);
 
@@ -157,7 +179,7 @@ describe('Modal Manager', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
             ->dispatch(
                 'noerdModal',
-                modalComponent: 'noerd-modal::example.noerd-example-component',
+                modalComponent: 'zz-modal-target',
                 source: 'customers-list',
                 arguments: [],
             );
@@ -182,9 +204,9 @@ describe('Modal Manager', function (): void {
 
     it('closes every open modal when closeAllModals is dispatched', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 1])
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 2])
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 3]);
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['id' => 1])
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['id' => 2])
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['id' => 3]);
 
         expect($component->get('modals'))->toHaveCount(3);
 
@@ -195,8 +217,8 @@ describe('Modal Manager', function (): void {
 
     it('dispatches modal-closed-global once when closeAllModals clears the stack', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 1])
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['id' => 2]);
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['id' => 1])
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['id' => 2]);
 
         $component->dispatch('closeAllModals')
             ->assertDispatched('modal-closed-global');
@@ -206,13 +228,13 @@ describe('Modal Manager', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
             ->dispatch(
                 'noerdModal',
-                modalComponent: 'noerd-modal::example.noerd-example-component',
+                modalComponent: 'zz-modal-target',
                 source: 'customers-list',
                 arguments: ['id' => 1],
             )
             ->dispatch(
                 'noerdModal',
-                modalComponent: 'noerd-modal::example.noerd-example-component',
+                modalComponent: 'zz-modal-target',
                 source: 'products-list',
                 arguments: ['id' => 2],
             );
@@ -268,7 +290,7 @@ describe('Modal Manager', function (): void {
     });
 
     it('never reads the shared preference for a forced fullscreen modal', function (): void {
-        $html = renderModalPanel('noerd-modal::example.noerd-example-fullscreen-component');
+        $html = renderModalPanel('zz-modal-fullscreen-target');
 
         expect($html)->toContain(':class="true ?');
         expect($html)->not->toContain('$store.app.modalFullscreen ?');
@@ -279,7 +301,7 @@ describe('Modal Manager', function (): void {
             ->set('modals', $value);
     })->with([
         'a scalar entry' => [[1]],
-        'a forged component' => [[['componentName' => 'noerd-modal::example.noerd-example-component']]],
+        'a forged component' => [[['componentName' => 'zz-modal-target']]],
     ])->throws(CannotUpdateLockedPropertyException::class);
 });
 
@@ -304,13 +326,11 @@ describe('Modal Route URL', function (): void {
             }
         });
 
+        Route::livewire('zz-query-string/{modelId}', 'zz-modal-query-string-component')
+            ->name('zz.query.string');
+
         $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch(
-                'noerdModal',
-                modalComponent: 'zz-modal-query-string-component',
-                arguments: ['modelId' => 5],
-                url: 'https://example.test/zz/5',
-            );
+            ->dispatch('noerdModal', route: 'zz.query.string', arguments: ['modelId' => 5]);
 
         $modal = array_values($component->get('modals'))[0];
 
@@ -322,60 +342,68 @@ describe('Modal Route URL', function (): void {
         );
     });
 
-    it('stores the url on the modal and dispatches set-modal-url', function (): void {
+    it('stores the route url on the modal and dispatches set-modal-url', function (): void {
+        Route::livewire('zz-account/{modelId}', 'zz-modal-target')->name('zz.account.detail');
+
         $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch(
-                'noerdModal',
-                modalComponent: 'noerd-modal::example.noerd-example-component',
-                arguments: ['modelId' => 5],
-                url: 'https://example.test/crm/account/5',
-            );
+            ->dispatch('noerdModal', route: 'zz.account.detail', arguments: ['modelId' => 5]);
 
         $modal = array_values($component->get('modals'))[0];
+        $url = route('zz.account.detail', ['modelId' => 5, 'modal' => 'true']);
 
-        expect($modal['url'])->toBe('https://example.test/crm/account/5');
+        expect($modal['url'])->toBe($url);
 
         $component->assertDispatched(
             'set-modal-url',
-            fn(string $event, array $params): bool => $params['url'] === 'https://example.test/crm/account/5'
+            fn(string $event, array $params): bool => $params['url'] === $url
                 && $params['clearParams'] === $modal['urlParameters'],
         );
     });
 
+    it('never takes the browser url from the event', function (): void {
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch(
+                'noerdModal',
+                modalComponent: 'zz-modal-target',
+                arguments: ['modelId' => 5],
+                url: 'https://example.test/anything',
+            );
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['url'])->toBeNull();
+
+        $component->assertNotDispatched('set-modal-url');
+    });
+
     it('does not dispatch set-modal-url for modals without a url', function (): void {
         Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: [])
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: [])
             ->assertNotDispatched('set-modal-url');
     });
 
     it('dispatches restore-modal-url when closeTopModal closes a url modal', function (): void {
+        Route::livewire('zz-account/{modelId}', 'zz-modal-target')->name('zz.account.detail');
+
         Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch(
-                'noerdModal',
-                modalComponent: 'noerd-modal::example.noerd-example-component',
-                arguments: ['modelId' => 5],
-                url: 'https://example.test/crm/account/5',
-            )
+            ->dispatch('noerdModal', route: 'zz.account.detail', arguments: ['modelId' => 5])
             ->dispatch('closeTopModal')
             ->assertDispatched('restore-modal-url');
     });
 
     it('does not dispatch restore-modal-url when closing a modal without a url', function (): void {
         Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: [])
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: [])
             ->dispatch('closeTopModal')
             ->assertNotDispatched('restore-modal-url');
     });
 
     it('only restores the url once the url modal itself is closed in a stack', function (): void {
+        Route::livewire('zz-account/{modelId}', 'zz-modal-target')->name('zz.account.detail');
+
         $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch(
-                'noerdModal',
-                modalComponent: 'noerd-modal::example.noerd-example-component',
-                arguments: ['modelId' => 5],
-                url: 'https://example.test/crm/account/5',
-            )
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: ['sub' => true]);
+            ->dispatch('noerdModal', route: 'zz.account.detail', arguments: ['modelId' => 5])
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: ['sub' => true]);
 
         $component->dispatch('closeTopModal')
             ->assertNotDispatched('restore-modal-url');
@@ -385,7 +413,7 @@ describe('Modal Route URL', function (): void {
     });
 
     it('resolves a livewire route name to its component and route url', function (): void {
-        Route::livewire('test-example/{modelId}', 'noerd-modal::example.noerd-example-component')
+        Route::livewire('test-example/{modelId}', 'zz-modal-target')
             ->name('test.example.detail');
 
         $component = Livewire::test('noerd-modal::noerd-modal')
@@ -393,14 +421,14 @@ describe('Modal Route URL', function (): void {
 
         $modal = array_values($component->get('modals'))[0];
 
-        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['componentName'])->toBe('zz-modal-target');
         expect($modal['url'])->toBe(route('test.example.detail', ['modelId' => 5, 'modal' => 'true']));
 
         $component->assertDispatched('set-modal-url');
     });
 
     it('resolves a parameterless livewire route with a plain modal url', function (): void {
-        Route::livewire('test-examples', 'noerd-modal::example.noerd-example-component')
+        Route::livewire('test-examples', 'zz-modal-target')
             ->name('test.examples');
 
         $component = Livewire::test('noerd-modal::noerd-modal')
@@ -408,12 +436,12 @@ describe('Modal Route URL', function (): void {
 
         $modal = array_values($component->get('modals'))[0];
 
-        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['componentName'])->toBe('zz-modal-target');
         expect($modal['url'])->toBe(route('test.examples', ['modal' => 'true']));
     });
 
     it('uses the new sentinel in the url when the modelId param is missing', function (): void {
-        Route::livewire('test-example/{modelId}', 'noerd-modal::example.noerd-example-component')
+        Route::livewire('test-example/{modelId}', 'zz-modal-target')
             ->name('test.example.detail');
 
         $component = Livewire::test('noerd-modal::noerd-modal')
@@ -421,14 +449,14 @@ describe('Modal Route URL', function (): void {
 
         $modal = array_values($component->get('modals'))[0];
 
-        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['componentName'])->toBe('zz-modal-target');
         expect($modal['url'])->toBe(route('test.example.detail', ['modelId' => 'new', 'modal' => 'true']));
 
         $component->assertDispatched('set-modal-url');
     });
 
     it('resolves the route component without a url when a required non-modelId param is missing', function (): void {
-        Route::livewire('test-example-other/{otherId}', 'noerd-modal::example.noerd-example-component')
+        Route::livewire('test-example-other/{otherId}', 'zz-modal-target')
             ->name('test.example.other');
 
         $component = Livewire::test('noerd-modal::noerd-modal')
@@ -436,7 +464,7 @@ describe('Modal Route URL', function (): void {
 
         $modal = array_values($component->get('modals'))[0];
 
-        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['componentName'])->toBe('zz-modal-target');
         expect($modal['url'])->toBeNull();
 
         $component->assertNotDispatched('set-modal-url');
@@ -454,39 +482,39 @@ describe('Modal Route URL', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal')
             ->dispatch(
                 'noerdModal',
-                modalComponent: 'noerd-modal::example.noerd-example-component',
+                modalComponent: 'zz-modal-target',
                 arguments: ['modelId' => 5],
                 route: 'route.that.does.not.exist',
             );
 
         $modal = array_values($component->get('modals'))[0];
 
-        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['componentName'])->toBe('zz-modal-target');
         expect($modal['url'])->toBeNull();
 
         $component->assertNotDispatched('set-modal-url');
     });
 
     it('prefers the route component over the fallback modalComponent', function (): void {
-        Route::livewire('test-route-wins/{modelId}', 'noerd-modal::example.noerd-example-fullscreen-component')
+        Route::livewire('test-route-wins/{modelId}', 'zz-modal-fullscreen-target')
             ->name('test.route.wins');
 
         $component = Livewire::test('noerd-modal::noerd-modal')
             ->dispatch(
                 'noerdModal',
-                modalComponent: 'noerd-modal::example.noerd-example-component',
+                modalComponent: 'zz-modal-target',
                 arguments: ['modelId' => 5],
                 route: 'test.route.wins',
             );
 
         $modal = array_values($component->get('modals'))[0];
 
-        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-fullscreen-component');
+        expect($modal['componentName'])->toBe('zz-modal-fullscreen-target');
         expect($modal['url'])->toBe(route('test.route.wins', ['modelId' => 5, 'modal' => 'true']));
     });
 
     it('skips the url rewrite when rewriteUrl is false', function (): void {
-        Route::livewire('test-no-rewrite/{modelId}', 'noerd-modal::example.noerd-example-component')
+        Route::livewire('test-no-rewrite/{modelId}', 'zz-modal-target')
             ->name('test.no.rewrite');
 
         $component = Livewire::test('noerd-modal::noerd-modal')
@@ -494,14 +522,14 @@ describe('Modal Route URL', function (): void {
 
         $modal = array_values($component->get('modals'))[0];
 
-        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['componentName'])->toBe('zz-modal-target');
         expect($modal['url'])->toBeNull();
 
         $component->assertNotDispatched('set-modal-url');
     });
 
     it('skips the url rewrite when an argument is not expressible in the route', function (): void {
-        Route::livewire('test-filtered-list', 'noerd-modal::example.noerd-example-component')
+        Route::livewire('test-filtered-list', 'zz-modal-target')
             ->name('test.filtered.list');
 
         $component = Livewire::test('noerd-modal::noerd-modal')
@@ -509,7 +537,7 @@ describe('Modal Route URL', function (): void {
 
         $modal = array_values($component->get('modals'))[0];
 
-        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['componentName'])->toBe('zz-modal-target');
         expect($modal['arguments'])->toBe(['accountId' => 5]);
         expect($modal['url'])->toBeNull();
 
@@ -517,13 +545,13 @@ describe('Modal Route URL', function (): void {
     });
 
     it('still rewrites the url for chrome-only arguments', function (): void {
-        Route::livewire('test-chrome-args/{modelId}', 'noerd-modal::example.noerd-example-component')
+        Route::livewire('test-chrome-args/{modelId}', 'zz-modal-target')
             ->name('test.chrome.args');
 
         $component = Livewire::test('noerd-modal::noerd-modal')
             ->dispatch('noerdModal', arguments: [
                 'modelId' => 5,
-                'relations' => ['accountId' => 7],
+                'relations' => [],
                 'quickCreate' => true,
             ], route: 'test.chrome.args');
 
@@ -534,19 +562,39 @@ describe('Modal Route URL', function (): void {
         $component->assertDispatched('set-modal-url');
     });
 
-    it('treats a dotted component name as a component, never as a route', function (): void {
+    it('skips the url rewrite when relations prefill the form', function (): void {
+        // "New" from a list narrowed by a parent record: a reload of
+        // /…/new would open the form WITHOUT that prefill.
+        Route::livewire('test-prefilled/{modelId}', 'zz-modal-target')
+            ->name('test.prefilled');
+
         $component = Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch('noerdModal', modalComponent: 'noerd-modal::example.noerd-example-component', arguments: []);
+            ->dispatch('noerdModal', arguments: [
+                'modelId' => null,
+                'relations' => ['accountId' => 7],
+            ], route: 'test.prefilled');
 
         $modal = array_values($component->get('modals'))[0];
 
-        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['componentName'])->toBe('zz-modal-target')
+            ->and($modal['url'])->toBeNull();
+
+        $component->assertNotDispatched('set-modal-url');
+    });
+
+    it('treats a dotted component name as a component, never as a route', function (): void {
+        $component = Livewire::test('noerd-modal::noerd-modal')
+            ->dispatch('noerdModal', modalComponent: 'zz-modal-target', arguments: []);
+
+        $modal = array_values($component->get('modals'))[0];
+
+        expect($modal['componentName'])->toBe('zz-modal-target');
         expect($modal['url'])->toBeNull();
     });
 
     it('opens a flashed modal on mount with its url', function (): void {
         session()->flash('noerd-modal.open', [
-            'component' => 'noerd-modal::example.noerd-example-component',
+            'component' => 'zz-modal-target',
             'arguments' => ['modelId' => 7],
             'url' => 'https://example.test/crm/account/7?modal=true',
         ]);
@@ -554,11 +602,49 @@ describe('Modal Route URL', function (): void {
         $component = Livewire::test('noerd-modal::noerd-modal');
 
         $modal = array_values($component->get('modals'))[0];
-        expect($modal['componentName'])->toBe('noerd-modal::example.noerd-example-component');
+        expect($modal['componentName'])->toBe('zz-modal-target');
         expect($modal['arguments'])->toBe(['modelId' => 7]);
         expect($modal['url'])->toBe('https://example.test/crm/account/7?modal=true');
 
         $component->assertDispatched('set-modal-url');
+    });
+
+    it('skips a flashed modal whose component is refused', function (): void {
+        session()->flash('noerd-modal.open', [
+            'component' => 'zz-modal-refused-target',
+            'arguments' => ['modelId' => 7],
+            'url' => 'https://example.test/zz/7?modal=true',
+        ]);
+
+        $component = Livewire::test('noerd-modal::noerd-modal');
+
+        expect($component->get('modals'))->toBeEmpty();
+
+        $component->assertNotDispatched('set-modal-url');
+    });
+
+    it('skips a flashed modal whose component no longer exists', function (): void {
+        session()->flash('noerd-modal.open', [
+            'component' => 'zz-modal-component-that-does-not-exist',
+            'arguments' => [],
+            'url' => 'https://example.test/zz?modal=true',
+        ]);
+
+        expect(Livewire::test('noerd-modal::noerd-modal')->get('modals'))->toBeEmpty();
+    });
+
+    it('renders the page behind a refused flashed modal', function (): void {
+        Route::get('zz-modal-host-page', fn(): string => \Illuminate\Support\Facades\Blade::render(
+            '<div>zz host page <livewire:noerd-modal/></div>',
+        ))->middleware('web')->name('zz.modal.host.page');
+
+        $this->withSession(['noerd-modal.open' => [
+            'component' => 'zz-modal-refused-target',
+            'arguments' => [],
+        ]])->get(route('zz.modal.host.page'))
+            ->assertOk()
+            ->assertSee('zz host page')
+            ->assertDontSee('zz-modal-refused-target');
     });
 
     it('mounts without a modal when nothing was flashed', function (): void {
@@ -566,25 +652,17 @@ describe('Modal Route URL', function (): void {
     });
 
     it('dispatches restore-modal-url for every url modal on closeAllModals', function (): void {
+        Route::livewire('zz-account/{modelId}', 'zz-modal-target')->name('zz.account.detail');
+
         Livewire::test('noerd-modal::noerd-modal')
-            ->dispatch(
-                'noerdModal',
-                modalComponent: 'noerd-modal::example.noerd-example-component',
-                arguments: ['modelId' => 1],
-                url: 'https://example.test/crm/account/1',
-            )
-            ->dispatch(
-                'noerdModal',
-                modalComponent: 'noerd-modal::example.noerd-example-component',
-                arguments: ['modelId' => 2],
-                url: 'https://example.test/crm/account/2',
-            )
+            ->dispatch('noerdModal', route: 'zz.account.detail', arguments: ['modelId' => 1])
+            ->dispatch('noerdModal', route: 'zz.account.detail', arguments: ['modelId' => 2])
             ->dispatch('closeAllModals')
             ->assertDispatched('restore-modal-url');
     });
 });
 
-function renderModalPanel(string $component = 'noerd-modal::example.noerd-example-component'): string
+function renderModalPanel(string $component = 'zz-modal-target'): string
 {
     return html_entity_decode(
         Livewire::test('noerd-modal::noerd-modal')

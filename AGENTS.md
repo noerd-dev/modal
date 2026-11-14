@@ -25,11 +25,15 @@ Laravel and Livewire — `noerd/noerd` requires `noerd/modal`, never the other w
   from `dist/build` through `GET /noerd-modal/{file}` (`noerd-modal.asset`)
 - `src/Console/Commands/` — `PublishExampleCommand`, `PublishPanelCommand`
 - `resources/views/components/` — `noerd-modal.blade.php` (the stack), `noerd-modal-assets.blade.php`,
-  `modal/index.blade.php`, `modal/panel.blade.php` (the chrome), `example/` (demo components)
-- `resources/js/noerd-modal.js` — Alpine magics, store `app`, ESC handling, URL stack
+  `modal/index.blade.php`, `modal/panel.blade.php` (the chrome)
+- `resources/views/examples/` — demo components, outside `components/` on purpose: not mountable
+  until `noerd-modal:publish-example` copies them into the host
+- `resources/js/noerd-modal.js` — Alpine magics, the modal keys of the SHARED store `app` (the core
+  adds its own; neither side replaces the store), ESC handling, loading overlay, URL stack
 - `dist/build/` — the committed Vite bundle (manifest + hashed assets)
 - `config/noerd-modal.php` — `position` (`center` | `right`)
-- `tests/Feature/` (Pest), `tests/js/modal-source.mjs`, `resources/lang/de.json`
+- `tests/TestCase.php` (Testbench: Livewire + this provider), `tests/Fixtures/` (`zz` targets),
+  `tests/Feature/` (Pest), `tests/js/*.mjs`, `resources/lang/de.json`
 
 ## Commands
 
@@ -47,19 +51,26 @@ the user's `position` setting. Do not add one.
 
 ## Working on the package
 
-- Tests bind the HOST's `Tests\TestCase` (`uses(Tests\TestCase::class)`); run from the host root:
-  `php artisan test --compact app-modules/noerd-modal/tests`. No database is touched.
-  `ModalSourceTest` needs a `node` binary and skips otherwise.
+- Tests bind the package's own `NoerdModal\Tests\TestCase` per file (Orchestra Testbench with
+  Livewire and this provider only — the suite proves the package works without `noerd/noerd`).
+  Standalone: `composer install && vendor/bin/pest`; from a host root:
+  `php artisan test --compact app-modules/noerd-modal/tests`. No database is touched. The Node
+  harness tests (`ModalSourceTest`, `ModalBehaviourTest`) need a `node` binary and skip otherwise.
 - JavaScript: `npm run dev` inside the package writes the Vite hot file to the host's
   `public/vendor/noerd-modal/hot` (the vite config assumes `app-modules/noerd-modal`), and the
   assets component then loads from the dev server. After changing `resources/js/noerd-modal.js`
-  run `npm run build` and commit `dist/build/` — it ships with the package.
+  run `npm run build` and commit `dist/build/` (one bundle — remove a superseded hashed file) and
+  `package-lock.json` — both ship with the package.
 - Format from the host project root with an explicit path: `vendor/bin/pint app-modules/noerd-modal`
   (a plain `--dirty` run silently skips submodule files); the package has no own `pint.json`.
 - Livewire children inside a modal are re-mounted on every stack update (`@teleport`): keep
   `mount()` of anything that can live in a modal side-effect free.
 - Keep the package independent: it must never `use` a class of `noerd/noerd` unguarded (the
-  `StaticConfigHelper` probe for `quickCreate` is wrapped in try/catch on purpose).
+  `StaticConfigHelper` probe for `quickCreate` is wrapped in try/catch on purpose;
+  `ModuleBoundaryTest` allows exactly these two references).
+- The panel's x-data keys `isModal`, `isRight`, `modalFullscreen`, `modalControlsClass`,
+  `modalTitleId` and the `modal` attribute of the panel element are a contract with `noerd/noerd`
+  (page, modal title, list header, keyboard shortcuts) — a changed or published panel keeps them.
 - When a feature changes: update the tests, `README.md` and
   `resources/boost/guidelines/core.blade.php`
 - Releasing: bump `"version"` in `composer.json` to the tag in the tagged commit

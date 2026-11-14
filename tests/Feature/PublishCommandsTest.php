@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\File;
 
-uses(Tests\TestCase::class);
+uses(NoerdModal\Tests\TestCase::class);
 
 /*
  | Both publish commands write into the HOST tree (resources/views/…,
@@ -77,6 +77,7 @@ describe('PublishExampleCommand', function (): void {
         $this->targetDir = resource_path('views/components/example');
         $this->componentFile = $this->targetDir . '/noerd-example-component.blade.php';
         $this->pageFile = $this->targetDir . '/noerd-example-page.blade.php';
+        $this->fullscreenFile = $this->targetDir . '/noerd-example-fullscreen-component.blade.php';
         $this->routeFile = base_path('routes/web.php');
     });
 
@@ -86,6 +87,7 @@ describe('PublishExampleCommand', function (): void {
 
         expect(File::exists($this->componentFile))->toBeTrue();
         expect(File::exists($this->pageFile))->toBeTrue();
+        expect(File::exists($this->fullscreenFile))->toBeTrue();
     });
 
     it('warns when files already exist without force flag', function (): void {
@@ -124,6 +126,40 @@ describe('PublishExampleCommand', function (): void {
         $newContent = File::get($this->routeFile);
         expect($newContent)->toContain('noerd-example-modal');
         expect($newContent)->toContain('noerd-modal-example');
+        // The route points at the PUBLISHED page, never at a package component.
+        expect($newContent)->toContain("'example.noerd-example-page'");
+        expect($newContent)->not->toContain('noerd-modal::');
+    });
+
+    it('publishes examples that only reference each other', function (): void {
+        $this->artisan('noerd-modal:publish-example')->assertSuccessful();
+
+        $sources = File::get($this->pageFile) . File::get($this->componentFile);
+
+        preg_match_all('/\$modal\(\'([^\']+)\'/', $sources, $matches);
+
+        expect($matches[1])->not->toBeEmpty();
+
+        // The published page is what the appended route names: Livewire's
+        // default component location of the application resolves it.
+        \Livewire\Livewire::addLocation(viewPath: resource_path('views/components'));
+
+        expect(\Livewire\Livewire::new(NoerdModal\Console\Commands\PublishExampleCommand::PAGE_COMPONENT))
+            ->toBeInstanceOf(\Livewire\Component::class);
+
+        foreach (array_unique($matches[1]) as $component) {
+            $file = $this->targetDir . '/' . str_replace('example.', '', $component) . '.blade.php';
+
+            expect(str_starts_with($component, 'example.'))->toBeTrue()
+                ->and(File::exists($file))->toBeTrue();
+        }
+    });
+
+    it('ships the examples outside every mountable component location', function (): void {
+        foreach (['example.noerd-example-page', 'noerd-modal::example.noerd-example-page', 'noerd-modal::examples.noerd-example-page'] as $name) {
+            expect(fn() => \Livewire\Livewire::new($name))
+                ->toThrow(\Livewire\Exceptions\ComponentNotFoundException::class);
+        }
     });
 
     it('does not duplicate route if already exists', function (): void {
@@ -141,11 +177,13 @@ describe('PublishExampleCommand', function (): void {
         $this->artisan('noerd-modal:publish-example')
             ->assertSuccessful();
 
-        $sourceDir = dirname(__DIR__, 2) . '/resources/views/components/example';
+        $sourceDir = dirname(__DIR__, 2) . '/resources/views/examples';
 
         expect(File::get($this->componentFile))
             ->toBe(File::get($sourceDir . '/noerd-example-component.blade.php'));
         expect(File::get($this->pageFile))
             ->toBe(File::get($sourceDir . '/noerd-example-page.blade.php'));
+        expect(File::get($this->fullscreenFile))
+            ->toBe(File::get($sourceDir . '/noerd-example-fullscreen-component.blade.php'));
     });
 });

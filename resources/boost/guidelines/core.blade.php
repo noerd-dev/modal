@@ -15,12 +15,15 @@ from the `noerd/noerd` guideline — this block only adds what is specific to th
   inside an `x-data` ancestor (`<body x-data>`).
 - The stack is ONE Livewire component, `noerd-modal` (`resources/views/components/noerd-modal.blade.php`,
   `#[Isolate]`, also reachable as `noerd-modal::noerd-modal`). It opens on the Livewire event
-  `noerdModal` (`bootModal(modalComponent, arguments, source, position, size, url, route, rewriteUrl)`):
+  `noerdModal` (`bootModal(modalComponent, arguments, source, position, size, route, rewriteUrl)`):
   at least one of `modalComponent` (component name) or `route` (name of a `Route::livewire()`
   route) is required. A route is resolved to the component behind it (`livewire_component` route
   action) and the browser URL is rewritten to the route `+ ?modal=true`; given both, the route
   wins and `modalComponent` is the fallback for an unregistered route. `rewriteUrl: false` keeps
-  the browser URL. A non-array `arguments` value is treated as `['modelId' => value]`.
+  the browser URL. A non-array `arguments` value is treated as `['modelId' => value]`. The event
+  takes NO `url`: the browser URL is derived from the route on the server only. An event that opens
+  nothing dispatches `noerd-modal-loading-end` (the loading overlay never takes pointer events and
+  also ends on a failed Livewire request).
 - Alpine magics (`resources/js/noerd-modal.js`): `$modal(component, args, source, position, size)`
   and `$modalRoute(route, args, source, position, size, {fallbackComponent, rewriteUrl})`. Both
   resolve `source` from the closest `[wire:id]` when not given, so the opener receives
@@ -29,7 +32,9 @@ from the `noerd/noerd` guideline — this block only adds what is specific to th
   `noerd/noerd` (`Noerd\Services\NoerdManager`) and only dispatches the same `noerdModal` event —
   this package owns the event contract and the rendering, never the PHP facade.
 - Closing: dispatch `closeTopModal` (top of the stack, LIFO; also bound to ESC and the X button)
-  or `closeAllModals`. Closing clears the `#[Url]` / `queryString*()` parameters of the closed
+  or `closeAllModals` — the stack has no other public close method (removing one entry is private).
+  ESC closes one modal per press (the closing panel is marked `data-closing`), ignores an Escape an
+  element already handled (`event.defaultPrevented`) and never stops the event. Closing clears the `#[Url]` / `queryString*()` parameters of the closed
   component from the URL (`clear-modal-url-params`), restores the previous URL of a routed modal
   (`restore-modal-url`, LIFO stack in JS) and dispatches `refreshList-{source}` for the opener.
   `modal-closed-global` fires when the stack is empty.
@@ -40,28 +45,42 @@ from the `noerd/noerd` guideline — this block only adds what is specific to th
   `Noerd\Helpers\StaticConfigHelper`, so the package still works in a host without `noerd/noerd`.
   A component with `public $forceModalFullscreen = true` always opens fullscreen.
 - The URL rewrite is only performed when it is TRUTHFUL: every non-empty argument must be a
-  parameter of the route (or one of the chrome arguments `relations`, `quickCreate`, `embedded`,
-  `disableModal`, `source`, `context`); a missing `{modelId}` becomes the `new` sentinel. A shared
-  `?modal=true` link is reopened from the session flash `noerd-modal.open` in `mount()`.
+  parameter of the route (or one of the chrome arguments `quickCreate`, `embedded`,
+  `disableModal`, `source`, `context`); a non-empty `relations` (the prefill of a create form)
+  blocks it; a missing `{modelId}` becomes the `new` sentinel. A shared `?modal=true` link is
+  reopened from the session flash `noerd-modal.open` (`component`, `arguments`, `url`) in
+  `mount()`; the flashed component is mounted once on trial and SKIPPED when it no longer resolves
+  or is refused (403 from an access hook), so the page behind it still renders.
+- The Alpine store `app` is SHARED: this package adds `modalOpen`, `modalFullscreen`,
+  `modalLoading`; `noerd/noerd` adds `currentId`/`setId()` (its list keyboard navigation). Each
+  side only adds missing keys — never `Alpine.store('app', {...})` over the other.
 
 ### Structure
 - `src/Providers/NoerdModalServiceProvider.php` — `mergeConfigFrom()`, views under the `noerd`
   namespace (`<x-noerd::modal>`, `<x-noerd::modal.panel>`, `<x-noerd::noerd-modal-assets>`),
-  JSON translations, Livewire namespace `noerd-modal::` plus `Livewire::addLocation()` for the
-  bare `noerd-modal` name, the asset route, and — console only — the config publish tag and the
-  two publish commands.
+  JSON translations, Livewire namespace `noerd-modal::` plus `Livewire::addComponent('noerd-modal')`
+  for the bare name of the stack (one component, never a whole location), the asset route, and —
+  console only — the config publish tag and the two publish commands.
 - `src/Http/Controllers/AssetController.php` + `src/Support/AssetManifest.php` — serve
   `dist/build` (Vite manifest, entry `resources/js/noerd-modal.js`) by route `noerd-modal.asset`
   (`GET /noerd-modal/{file}`, no middleware, immutable cache headers, 304 on `If-Modified-Since`);
   only files listed in the manifest are servable.
 - `resources/views/components/modal/panel.blade.php` — the panel chrome (position `center`/`right`,
-  sizes `default`/`narrow`, fullscreen toggle via the Alpine store `app`, stacked depth styling);
+  sizes `default`/`narrow`, fullscreen toggle via the Alpine store `app`, stacked depth styling,
+  `role="dialog"` + `aria-modal` + `aria-labelledby`, ids unique per modal key);
   `modal/index.blade.php` — the `open` wrapper. Publish the panel for customisation with
   `noerd-modal:publish-panel` (target `resources/views/vendor/noerd/components/modal/panel.blade.php`).
-- `resources/views/components/example/` — demo components published by `noerd-modal:publish-example`.
+  CONTRACT of a published panel: the x-data of the panel body keeps `isModal`, `isRight`,
+  `modalFullscreen`, `modalControlsClass` and `modalTitleId` — `noerd/noerd`'s page, modal title
+  and list header read them — and the panel element keeps the `modal` attribute (the top panel is
+  the last `[modal]` element; ESC and the core's keyboard shortcuts rely on it).
+- `resources/views/examples/` — demo components, deliberately OUTSIDE `components/`: neither
+  mountable by bare name nor as `noerd-modal::…`. `noerd-modal:publish-example` copies them to the
+  host's `resources/views/components/example/` (Livewire names `example.noerd-example-*`).
 - `config/noerd-modal.php` — single key `position` (`center` | `right`).
-- `dist/build/` is COMMITTED: `npm run build` inside the package regenerates it after every change
-  to `resources/js/noerd-modal.js`; `npm run dev` writes the hot file to the host's
+- `dist/build/` is COMMITTED (one bundle + manifest), `package-lock.json` too (`vite` and
+  `laravel-vite-plugin` are devDependencies): `npm run build` inside the package regenerates it
+  after every change to `resources/js/noerd-modal.js`; `npm run dev` writes the hot file to the host's
   `public/vendor/noerd-modal/hot` (the vite config assumes the package lives in `app-modules/noerd-modal`).
 
 ### No install/update command
@@ -92,17 +111,22 @@ This package has NO `noerd:install-modal` / `noerd:update-modal` and must never 
   aliases such as `detailPrimary`); `filter` and `currentTab` are blacklisted and never cleared.
 
 ### Commands
-- `php artisan noerd-modal:publish-example {--force}` — copies the example components to
-  `resources/views/components/example/` and appends the `noerd-modal-example` route to `routes/web.php`
+- `php artisan noerd-modal:publish-example {--force}` — copies the three example components to
+  `resources/views/components/example/` and appends the `noerd-modal-example` route (pointing at the
+  PUBLISHED `example.noerd-example-page`) to `routes/web.php`
 - `php artisan noerd-modal:publish-panel {--force}` — publishes the panel view for customisation
 - `php artisan vendor:publish --tag=noerd-modal-config` — the only config publish path
 
 ### Tests
-- Pest tests in `tests/Feature/`, bound to the HOST's `Tests\TestCase` (`uses(Tests\TestCase::class)`;
-  the package ships no TestCase of its own). Run from the host root:
+- Pest tests in `tests/Feature/`, bound per file to the package's own `NoerdModal\Tests\TestCase`
+  (Orchestra Testbench with Livewire and this provider ONLY — no `noerd/noerd`). Standalone:
+  `composer install && vendor/bin/pest` in the package; from a host root:
   `php artisan test --compact app-modules/noerd-modal/tests` — no database is touched.
-- `tests/js/modal-source.mjs` + `ModalSourceTest.php` run the Alpine source-resolution logic under
-  Node (skipped when no `node` binary is found).
+  `ModuleBoundaryTest` forbids every `Noerd\` reference except the two guarded quickCreate probes.
+- The tests open `zz-modal-target`, `zz-modal-fullscreen-target` and `zz-modal-refused-target`
+  (`tests/Fixtures`, registered by the TestCase) — never the examples.
+- `tests/js/modal-source.mjs` (source resolution) and `tests/js/modal-behaviour.mjs` (ESC, loading
+  overlay, history state, shared store) run under Node (skipped when no `node` binary is found).
 - Modal route tests: mirror `NoerdModalTest.php`, `describe('Modal Route URL')` — register a
   throwaway component with `Livewire::component('zz-…')` (and a route with `Route::livewire()`),
   dispatch `noerdModal` on `Livewire::test('noerd-modal::noerd-modal')` and assert the `modals`

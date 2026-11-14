@@ -90,18 +90,36 @@ new class extends Component
 ```html
 {{-- Inside a Livewire component that is itself open in a modal --}}
 <button type="button"
-    @click="$modal('another-livewire-component', { count: '{{ $count }}' })">
+    @click="$modal('another-livewire-component', { count: @js($count) })">
     Open another modal on top
 </button>
 ```
 
 Closing follows LIFO order:
 
-- **ESC** closes only the topmost modal.
+- **ESC** closes only the topmost modal — one per press. A dropdown or popover inside the modal
+  that handles ESC itself calls `$event.preventDefault()` while it is open; the modal then stays.
 - Dispatch `closeTopModal` from PHP/Livewire to close the top modal programmatically.
 - Dispatch `closeAllModals` to clear the entire stack at once.
 
 Layering is handled automatically: only the top modal is interactive; modals beneath it are dimmed and slightly scaled down — no styling work required on your end.
+
+## Accessibility
+
+Every panel is a `role="dialog"` with `aria-modal="true"` and a focus trap. It is labelled by the
+element whose id is the `modalTitleId` of the panel scope (noerd's modal title binds it); without
+such an element the generic `aria-label` applies. Each stacked panel has its own ids.
+
+## Upgrading from 0.3
+
+- The public stack method `closeModal($componentName, $source, $modalKey)` is gone — close with
+  `closeTopModal` or `closeAllModals`.
+- The `noerdModal` event takes no `url` argument any more: the browser URL of a routed modal is
+  derived from its route on the server.
+- `$store.app.currentId` / `setId()` belong to `noerd/noerd` now; the `set-app-id` browser event is
+  gone.
+- A non-empty `relations` argument blocks the URL rewrite of a routed modal.
+- The examples are no longer mountable as `noerd-modal::example.*` — publish them.
 
 ## Developing the package
 
@@ -109,7 +127,12 @@ Run `npm run dev` inside the package directory: it writes the Vite hot file to
 `public/vendor/noerd-modal/hot` of the host application (the vite config assumes the package lives
 in `app-modules/noerd-modal`), and `<x-noerd::noerd-modal-assets/>` then loads the bundle from the
 dev server instead of the package route. `npm run build` writes the bundle to `dist/build`, which is
-committed and shipped with the package.
+committed and shipped with the package (exactly one bundle plus the manifest); `package-lock.json`
+is committed too, so the build is reproducible.
+
+Tests run on the package's own Orchestra Testbench application (Livewire and this package only —
+no `noerd/noerd`): `composer install && vendor/bin/pest` inside the package, or
+`php artisan test --compact app-modules/noerd-modal/tests` from a host application root.
 
 ## Publishing the Example
 
@@ -120,8 +143,11 @@ php artisan noerd-modal:publish-example
 ```
 
 This will:
-- Copy example components to `resources/views/components/example/`
-- Add a route `/noerd-example-modal` to `routes/web.php`
+- Copy the example components to `resources/views/components/example/` — Livewire finds them there
+  as `example.noerd-example-page`, `example.noerd-example-component` and
+  `example.noerd-example-fullscreen-component`. The package itself registers no example component.
+- Add a route `/noerd-example-modal` (`noerd-modal-example`) to `routes/web.php` that renders the
+  published page
 
 ### Example Livewire Starter Kit
 If you are using the [Livewire Starter Kit](https://github.com/laravel/livewire-starter-kit)

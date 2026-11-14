@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 use NoerdModal\Providers\NoerdModalServiceProvider;
 
-uses(Tests\TestCase::class);
+uses(NoerdModal\Tests\TestCase::class);
 
 /*
  | The provider must never write into the host on its own: the config is

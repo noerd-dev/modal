@@ -5,8 +5,24 @@ namespace NoerdModal\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 
+/**
+ * Copies the example components into the application's
+ * resources/views/components/example/ — Livewire's default component location,
+ * where they resolve as `example.noerd-example-*` — and appends a route to the
+ * published page. The package itself registers no example component.
+ */
 class PublishExampleCommand extends Command
 {
+    /** The published example page, as Livewire resolves it in the application. */
+    public const PAGE_COMPONENT = 'example.noerd-example-page';
+
+    /** @var list<string> */
+    public const FILES = [
+        'noerd-example-component.blade.php',
+        'noerd-example-fullscreen-component.blade.php',
+        'noerd-example-page.blade.php',
+    ];
+
     protected $signature = 'noerd-modal:publish-example {--force : Overwrite existing files}';
 
     protected $description = 'Publish the noerd-modal example components and route';
@@ -21,17 +37,12 @@ class PublishExampleCommand extends Command
 
     private function publishComponents(): void
     {
-        $sourceDir = __DIR__ . '/../../../resources/views/components/example';
+        $sourceDir = __DIR__ . '/../../../resources/views/examples';
         $targetDir = resource_path('views/components/example');
-
-        $files = [
-            'noerd-example-component.blade.php',
-            'noerd-example-page.blade.php',
-        ];
 
         File::ensureDirectoryExists($targetDir);
 
-        foreach ($files as $file) {
+        foreach (self::FILES as $file) {
             $source = "{$sourceDir}/{$file}";
             $target = "{$targetDir}/{$file}";
 
@@ -58,7 +69,7 @@ class PublishExampleCommand extends Command
             return;
         }
 
-        $route = "\n// Noerd Modal Example\nRoute::livewire('noerd-example-modal', 'noerd-modal::example.noerd-example-page')->name('noerd-modal-example');\n";
+        $route = "\n// Noerd Modal Example\nRoute::livewire('noerd-example-modal', '" . self::PAGE_COMPONENT . "')->name('noerd-modal-example');\n";
 
         File::append($routeFile, $route);
         $this->info('Route added to routes/web.php');

@@ -16,12 +16,14 @@ new #[Isolate] class extends Component {
      * Arguments that describe modal chrome rather than record identity. They never
      * block the URL rewrite of a routed modal — everything else must be expressible
      * as a route parameter, otherwise the rewritten URL would show something
-     * different on reload (see routeUrlIsTruthful()).
+     * different on reload (see routeUrlIsTruthful()). `relations` is deliberately
+     * NOT among them: it prefills a create form ("New" from a narrowed list), and
+     * a reload of the URL would open the form without that prefill.
      */
-    private const URL_NEUTRAL_ARGUMENTS = ['relations', 'quickCreate', 'embedded', 'disableModal', 'source', 'context'];
+    private const URL_NEUTRAL_ARGUMENTS = ['quickCreate', 'embedded', 'disableModal', 'source', 'context'];
 
     /**
-     * The stack is written by the server only (bootModal(), closeModal(), …). Locked,
+     * The stack is written by the server only (bootModal(), closeTopModal(), …). Locked,
      * so a forged update request cannot inject entries or components into it.
      */
     #[Locked]
@@ -36,11 +38,11 @@ new #[Isolate] class extends Component {
     {
         $flash = session('noerd-modal.open');
 
-        if (is_array($flash) && isset($flash['component'])) {
-            $this->bootModal(
-                modalComponent: $flash['component'],
-                arguments: $flash['arguments'] ?? [],
-                url: $flash['url'] ?? null,
+        if (is_array($flash) && is_string($flash['component'] ?? null)) {
+            $this->openFlashedModal(
+                $flash['component'],
+                is_array($flash['arguments'] ?? null) ? $flash['arguments'] : [],
+                is_string($flash['url'] ?? null) ? $flash['url'] : null,
             );
         }
     }
@@ -59,6 +61,10 @@ new #[Isolate] class extends Component {
      * $rewriteUrl: false resolves the route to its component but keeps the
      * browser URL — for targets that are not addressable (e.g. a list opened
      * filtered by a parent record).
+     *
+     * The browser URL is never an argument of the event: it is derived from the
+     * route on the server only (routeUrlIsTruthful()), so a client cannot write
+     * an arbitrary address into the address bar.
      */
     #[On('noerdModal')]
     public function bootModal(
@@ -67,7 +73,6 @@ new #[Isolate] class extends Component {
         ?string $source = null,
         ?string $position = null,
         ?string $size = null,
-        ?string $url = null,
         ?string $route = null,
         bool    $rewriteUrl = true,
     ): void
@@ -76,6 +81,8 @@ new #[Isolate] class extends Component {
             $arguments = ['modelId' => $arguments];
         }
 
+        $url = null;
+
         if ($route !== null) {
             $namedRoute = app('router')->getRoutes()->getByName($route);
             $component = $namedRoute?->getAction('livewire_component');
@@ -83,27 +90,8 @@ new #[Isolate] class extends Component {
             // An unresolvable route falls through to the $modalComponent fallback
             // (nothing opens when the caller passed none).
             if (is_string($component)) {
-                if ($url === null && $rewriteUrl && $this->routeUrlIsTruthful($namedRoute, $arguments)) {
-                    try {
-                        $params = array_filter(
-                            array_intersect_key($arguments, array_flip($namedRoute->parameterNames())),
-                            fn ($value): bool => $value !== null && $value !== '',
-                        );
-
-                        // A create modal has no record id — the conventional {modelId}
-                        // param carries the 'new' sentinel (e.g. /crm/account/new), so
-                        // the URL stays shareable and a reload reopens the create modal
-                        // (NoerdPage::prepareRoutedModal() maps 'new' back to null).
-                        if (! isset($params['modelId']) && in_array('modelId', $namedRoute->parameterNames(), true)) {
-                            $params['modelId'] = 'new';
-                        }
-
-                        $url = route($route, $params + ['modal' => 'true']);
-                    } catch (\Illuminate\Routing\Exceptions\UrlGenerationException) {
-                        // A required route param other than {modelId} is missing —
-                        // open the component without a URL rewrite.
-                        $url = null;
-                    }
+                if ($rewriteUrl && $this->routeUrlIsTruthful($namedRoute, $arguments)) {
+                    $url = $this->routeUrl($namedRoute, $arguments);
                 }
 
                 $modalComponent = $component;
@@ -111,9 +99,81 @@ new #[Isolate] class extends Component {
         }
 
         if ($modalComponent === null) {
+            // Nothing opens — end the loading overlay the browser showed when it
+            // dispatched the event, instead of letting it block the page.
+            $this->dispatch('noerd-modal-loading-end');
+
             return;
         }
 
+        $this->pushModal($modalComponent, $arguments, $source, $position, $size, $url);
+    }
+
+    /**
+     * Reopens the modal flashed by a redirected ?modal=true page load. The
+     * component is mounted ONCE on trial first: a component that no longer
+     * resolves, or that an access hook refuses for this user, is skipped — the
+     * page the user was sent back to renders without it instead of failing as
+     * a whole. The trial mount is as side-effect free as every modal mount must
+     * be (the stack re-mounts its children on every update anyway).
+     *
+     * @param  array<string, mixed>  $arguments
+     */
+    private function openFlashedModal(string $component, array $arguments, ?string $url): void
+    {
+        try {
+            app('livewire')->mount($component, $arguments, 'noerd-modal-flash-probe');
+        } catch (\Throwable $exception) {
+            if (! $exception instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
+                && ! $exception instanceof \Livewire\Exceptions\ComponentNotFoundException) {
+                report($exception);
+            }
+
+            return;
+        }
+
+        $this->pushModal($component, $arguments, null, null, null, $url);
+    }
+
+    /**
+     * The URL of a routed modal: the route with its parameters + ?modal=true,
+     * or null when a required parameter other than {modelId} is missing.
+     *
+     * @param  array<string, mixed>  $arguments
+     */
+    private function routeUrl(\Illuminate\Routing\Route $route, array $arguments): ?string
+    {
+        try {
+            $params = array_filter(
+                array_intersect_key($arguments, array_flip($route->parameterNames())),
+                fn ($value): bool => $value !== null && $value !== '',
+            );
+
+            // A create modal has no record id — the conventional {modelId}
+            // param carries the 'new' sentinel (e.g. /crm/account/new), so
+            // the URL stays shareable and a reload reopens the create modal
+            // (NoerdPage::prepareRoutedModal() maps 'new' back to null).
+            if (! isset($params['modelId']) && in_array('modelId', $route->parameterNames(), true)) {
+                $params['modelId'] = 'new';
+            }
+
+            return route($route->getName(), $params + ['modal' => 'true']);
+        } catch (\Illuminate\Routing\Exceptions\UrlGenerationException) {
+            return null;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    private function pushModal(
+        string $modalComponent,
+        array $arguments,
+        ?string $source,
+        ?string $position,
+        ?string $size,
+        ?string $url,
+    ): void {
         // Components that opt into quick-create for new records (`quickCreate: true`
         // in their detail or page YAML) open in the narrow panel when no record is
         // being edited — no per-call quickCreate flag required.
@@ -198,14 +258,14 @@ new #[Isolate] class extends Component {
         }
     }
 
-    public function closeModal(string $componentName, ?string $source, ?string $modalKey): void
+    /**
+     * Removes one entry from the stack. Private on purpose: the browser closes
+     * through closeTopModal / closeAllModals only, which also restore the URL
+     * and refresh the opener.
+     */
+    private function removeModal(string $modalKey): void
     {
-        $modals = $this->modals;
-        foreach ($modals as $modal) {
-            if ($modal['componentName'] === $componentName && $modal['key'] === $modalKey) {
-                unset($this->modals[$modal['key']]);
-            }
-        }
+        unset($this->modals[$modalKey]);
 
         $this->markTopModal();
 
@@ -273,8 +333,7 @@ new #[Isolate] class extends Component {
                     $this->dispatch('restore-modal-url');
                 }
 
-                // Close the modal
-                $this->closeModal($modal['componentName'], $modal['source'], $modal['key']);
+                $this->removeModal($modal['key']);
                 if ($modal['source']) {
                     $this->dispatch('refreshList-' . Str::afterLast($modal['source'], '.'));
                 }
@@ -373,8 +432,11 @@ new #[Isolate] class extends Component {
 
 } ?>
 
-<div x-data="{selectedRow: 0, isDragging: false, isLoading: false}">
-    <!-- Global modal loading overlay -->
+<div x-data :aria-busy="$store.app.modalLoading ? 'true' : 'false'">
+    {{-- Global modal loading overlay. It never takes pointer events: a modal
+         that does not open (refused, failed request) must not block the page
+         while the overlay waits for its end (noerd-modal-loading-end, a failed
+         request, or the last-resort timeout). --}}
     <div x-show="$store.app.modalLoading"
          x-transition:enter="transition ease-out duration-150"
          x-transition:enter-start="opacity-0"
@@ -382,10 +444,12 @@ new #[Isolate] class extends Component {
          x-transition:leave="transition ease-in duration-100"
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-[60] flex items-center justify-center"
+         class="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center"
+         role="status"
          style="display: none;"
     >
-        <svg class="animate-spin h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <span class="sr-only">{{ __('Loading') }}</span>
+        <svg class="animate-spin h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>

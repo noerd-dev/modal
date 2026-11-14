@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
 use NoerdModal\Support\AssetManifest;
 
-uses(Tests\TestCase::class);
+uses(NoerdModal\Tests\TestCase::class);
 
 /*
  | <x-noerd::noerd-modal-assets/> points at the package route in production

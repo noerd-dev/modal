@@ -17,8 +17,12 @@ class NoerdModalServiceProvider extends ServiceProvider
 
         $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'noerd');
         $this->loadJsonTranslationsFrom(__DIR__ . '/../../resources/lang');
+        // The stack under its namespaced name and — registered as ONE component,
+        // never as a whole location — its bare name `<livewire:noerd-modal/>`.
+        // The example components live outside resources/views/components and
+        // are not mountable at all until they are published.
         Livewire::addNamespace('noerd-modal', viewPath: __DIR__ . '/../../resources/views/components');
-        Livewire::addLocation(viewPath: __DIR__ . '/../../resources/views/components');
+        Livewire::addComponent('noerd-modal', viewPath: __DIR__ . '/../../resources/views/components/noerd-modal.blade.php');
 
         $this->registerAssetRoute();
 

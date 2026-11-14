@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
 
-uses(Tests\TestCase::class);
+uses(NoerdModal\Tests\TestCase::class);
 
 /**
  * Laravel Boost renders a package's guideline through Blade and silently DROPS
@@ -17,7 +17,7 @@ it('renders the boost guideline through blade', function (): void {
 
     $rendered = Blade::render($source);
 
-    expect(mb_trim($rendered))->not->toBe('')
+    expect(trim($rendered))->not->toBe('')
         ->and($rendered)
         ->not->toContain('@verbatim')
         ->not->toContain('@endverbatim');

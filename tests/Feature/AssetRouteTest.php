@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use NoerdModal\Support\AssetManifest;
 
-uses(Tests\TestCase::class);
+uses(NoerdModal\Tests\TestCase::class);
 
 /*
  | The bundle is served straight from the package's dist/build — nothing is
@@ -66,3 +66,15 @@ it('lists the servable files from the manifest', function (): void {
         ->and($files[$this->scriptFile])->toBe($this->scriptPath)
         ->and(AssetManifest::path('missing.js'))->toBeNull();
 });
+
+it('refuses a traversal path in the controller itself, past the route constraint', function (string $file): void {
+    // The route's [A-Za-z0-9._-]+ constraint already rejects a slash; the
+    // controller must not rely on it (a host may register its own route).
+    $controller = new NoerdModal\Http\Controllers\AssetController();
+
+    $controller(Illuminate\Http\Request::create('/'), $file);
+})->with([
+    'parent directory' => '../manifest.json',
+    'absolute path' => '/etc/passwd',
+    'nested asset path' => 'assets/../manifest.json',
+])->throws(Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class);
