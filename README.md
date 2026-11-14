@@ -1,5 +1,8 @@
 # noerd/modal
 
+[![Total Downloads](https://img.shields.io/packagist/dt/noerd/modal.svg)](https://packagist.org/packages/noerd/modal)
+[![Latest Stable Version](https://img.shields.io/packagist/v/noerd/modal.svg)](https://packagist.org/packages/noerd/modal)
+
 **A stacked modal system for Laravel Livewire 4.**<br/>
 Open any Livewire component in a modal — no traits, no modifications to your livewire component code.
 
